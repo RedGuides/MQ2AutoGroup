@@ -225,6 +225,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 			WritePrivateProfileString(szTemp1, "Member6", "", INIFileName);
 			if (iGroupNumber == iNumberOfGroups + 1)
 			{
+				sprintf_s(szTemp1, "%i", iGroupNumber);
 				WritePrivateProfileString("Settings", "NumberOfGroups", szTemp1, INIFileName);
 			}
 			WriteChatf(PLUGIN_MSG ":: \agSuccessfully created group: number %i.\ax", iGroupNumber);
@@ -1338,10 +1339,8 @@ PLUGIN_API VOID OnPulse(VOID)
 					}
 					else if (PSPAWNINFO pNewSpawn = (PSPAWNINFO)GetSpawnByName(szTemp1))
 					{
-						sprintf_s(szCommand, "/invite %s", szTemp1);
-						DoCommand(GetCharInfo()->pSpawn, szCommand);
-						//DWORD nThreadID = 0;
-						//CreateThread(NULL, NULL, InviteToons, _strdup(szTemp1), 0, &nThreadID);
+						DWORD nThreadID = 0;
+						CreateThread(NULL, NULL, InviteToons, _strdup(szTemp1), 0, &nThreadID);
 						vInviteNames.erase(vInviteNames.begin() + a);
 					}
 				}
