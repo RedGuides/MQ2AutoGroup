@@ -29,8 +29,9 @@ bool					bUseMerc = false;
 bool					bSummonMerc = true;
 bool					bSummonedMerc = false;
 bool					bUseStartCommand = false; 
-bool					bGroupComplete = true;
+bool					bGroupComplete = false;
 bool					bAutoGroupSetup = false;
+bool					bInvitingEQBCPlayer = false;
 unsigned int			iGroupNumber = 0;
 unsigned int			iNumberOfGroups = 0;
 char					szMainTank[MAX_STRING] = "NoEntry";
@@ -42,7 +43,13 @@ char					szStartCommand[MAX_STRING];
 char					szCommand[MAX_STRING];
 vector <string>			vGroupNames;
 vector <string>			vInviteNames;
+SEARCHSPAWN				ssPCSearchCondition;
 
+
+// Function and variables used to connect to MQ2Eqbc
+bool bConnectedtoMQ2Eqbc = false;
+bool(*fAreTheyConnected)(char* szName);
+unsigned short(*fisConnected)();
 
 #pragma region Inlines
 // Returns TRUE if character is in game and has valid character data structures
@@ -58,7 +65,35 @@ inline bool WinState(CXWnd *Wnd)
 }
 #pragma endregion Inlines
 
-unsigned int FindCreateGroupIndex()
+// This is the region for connecting to other plugins
+PMQPLUGIN Plugin(char* PluginName)
+{
+	long Length = strlen(PluginName) + 1;
+	PMQPLUGIN pLook = pPlugins;
+	while (pLook && _strnicmp(PluginName, pLook->szFilename, Length)) pLook = pLook->pNext;
+	return pLook;
+}
+
+void ConnectToMQ2Eqbc(void)
+{
+	bConnectedtoMQ2Eqbc = false;
+	fisConnected = NULL;
+	fAreTheyConnected = NULL;
+	if (PMQPLUGIN pLook = Plugin("mq2eqbc"))
+	{
+		fisConnected = (unsigned short(*)())GetProcAddress(pLook->hModule, "isConnected");
+		fAreTheyConnected = (bool(*)(char* szName))GetProcAddress(pLook->hModule, "AreTheyConnected");
+		if (fisConnected && fAreTheyConnected)
+		{
+			if (fisConnected())
+			{
+				bConnectedtoMQ2Eqbc = true;
+			}
+		}
+	}
+}
+
+unsigned int FindCreateGroupIndex(void)
 {
 	char szTemp1[MAX_STRING];
 	char szTemp2[MAX_STRING];
@@ -570,7 +605,15 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	else if (!_stricmp(Parm1, "add"))
 	{
-		if (!_stricmp(Parm2, "player"))
+		if (!_stricmp(Parm2, "eqbc"))
+		{
+			iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+			if (iGroupNumber > 0)
+			{
+				WriteGroupEntry("EQBC", iGroupNumber);
+			}
+		}
+		else if (!_stricmp(Parm2, "player"))
 		{
 			if (pTarget)
 			{
@@ -655,7 +698,15 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	else if (!_stricmp(Parm1, "remove"))
 	{
-		if (!_stricmp(Parm2, "player"))
+		if (!_stricmp(Parm2, "eqbc"))
+		{
+			iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+			if (iGroupNumber > 0)
+			{
+				RemoveGroupEntry("EQBC", iGroupNumber);
+			}
+		}
+		else if (!_stricmp(Parm2, "player"))
 		{
 			if (pTarget)
 			{
@@ -1004,6 +1055,35 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	} 
 }
 
+DWORD __stdcall InviteEQBCToons(PVOID pData)
+{
+	CHAR szTemp1[MAX_STRING];
+	CHAR szTemp2[MAX_STRING];
+	sprintf_s(szTemp1, "%s", (PCHAR)pData);
+	Sleep(10000); // 10 seconds
+	sprintf_s(szCommand, "/invite %s", szTemp1);
+	DoCommand(GetCharInfo()->pSpawn, szCommand);
+	Sleep(5000); // 5 seconds to let them get the group invite
+	sprintf_s(szCommand, "/bct %s //invite", szTemp1);
+	DoCommand(GetCharInfo()->pSpawn, szCommand);
+	Sleep(5000); // 5 seconds wait 5 seconds for them to join the group so we don't try and invite them again
+	if (vGroupNames.size())
+	{
+		for (register unsigned int a = 0; a < vGroupNames.size(); a++)
+		{
+			strcpy_s(szTemp2, vGroupNames[a].c_str());
+			if (!_stricmp(szTemp2, "EQBC"))
+			{
+				vGroupNames.erase(vGroupNames.begin() + a);
+				bInvitingEQBCPlayer = false;
+				return 0;
+			}
+		}
+	}
+	bInvitingEQBCPlayer = false;
+	return 0;
+}
+
 DWORD __stdcall InviteToons(PVOID pData)
 {
 	CHAR szTemp1[MAX_STRING];
@@ -1040,6 +1120,8 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 	char szTemp4[MAX_STRING];
 	vGroupNames.clear();
 	vInviteNames.clear();
+	ClearSearchSpawn(&ssPCSearchCondition);
+	ssPCSearchCondition.SpawnType = PC;
 
 	sprintf_s(INIFileName, "%s\\%s.ini", gszINIPath, PLUGIN_NAME);
 	if (GetPrivateProfileInt("Settings", "Version", 0, INIFileName) != VERSION)
@@ -1336,18 +1418,65 @@ PLUGIN_API VOID OnPulse(VOID)
 					if (!_stricmp(szTemp1, ((PCHARINFO)pCharData)->Name))
 					{
 						vInviteNames.erase(vInviteNames.begin() + a);
+						return;
+					}
+					else if (!_stricmp(szTemp1, "EQBC"))
+					{
+						if (!bInvitingEQBCPlayer)
+						{
+							if (!bConnectedtoMQ2Eqbc)
+							{
+								ConnectToMQ2Eqbc();
+							}
+							if (bConnectedtoMQ2Eqbc)
+							{
+								unsigned int iSpawnCount = CountMatchingSpawns(&ssPCSearchCondition, GetCharInfo()->pSpawn, false);
+								if (iSpawnCount)
+								{
+									for (unsigned int s = 1; s <= iSpawnCount; s++)
+									{
+										if (PSPAWNINFO pNewSpawn = NthNearestSpawn(&ssPCSearchCondition, s, GetCharInfo()->pSpawn, false))
+										{	
+											sprintf_s(szTemp2, "%s", pNewSpawn->Name);
+											if (fAreTheyConnected(szTemp2))
+											{
+												bool bInGroup = false;
+												for (register unsigned int b = 1; b < 6; b++)
+												{
+													if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[b] && pChar->pGroupInfo->pMember[b]->pSpawn && pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
+													{
+														if (pNewSpawn->SpawnID == pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
+														{
+															bInGroup = true;
+														}
+													}
+												}
+												if (!bInGroup)
+												{
+													bInvitingEQBCPlayer = true;
+													DWORD nThreadID = 0;
+													CreateThread(NULL, NULL, InviteEQBCToons, _strdup(szTemp2), 0, &nThreadID);
+													vInviteNames.erase(vInviteNames.begin() + a);
+													return;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
 					}
 					else if (PSPAWNINFO pNewSpawn = (PSPAWNINFO)GetSpawnByName(szTemp1))
 					{
 						DWORD nThreadID = 0;
 						CreateThread(NULL, NULL, InviteToons, _strdup(szTemp1), 0, &nThreadID);
 						vInviteNames.erase(vInviteNames.begin() + a);
+						return;
 					}
 				}
 			}
 		}
 	}
-
 	if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[0])
 	{
 		int	iGroupMembers = 0;
@@ -1433,7 +1562,7 @@ PLUGIN_API DWORD OnIncomingChat(PCHAR Line, DWORD Color)
 			string& vRef = vGroupNames[a];
 			if (!_strcmpi(szName, vRef.c_str())) 
 			{
-				DoCommand(GetCharInfo()->pSpawn, "/timed 5s /invite");
+				DoCommand(GetCharInfo()->pSpawn, "/timed 50 /invite");
 				WriteChatf(PLUGIN_MSG ":: Joining group with \ag%s\ax", szName);
 			}
 		}
