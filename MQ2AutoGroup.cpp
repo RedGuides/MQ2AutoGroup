@@ -1261,7 +1261,14 @@ PLUGIN_API VOID OnPulse(VOID)
 	{
 		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[0])
 		{
-			if (pChar->pGroupInfo->pLeader->pSpawn->SpawnID != pChar->pSpawn->SpawnID)
+			if (pChar->pGroupInfo->pLeader && pChar->pGroupInfo->pLeader->pSpawn && pChar->pGroupInfo->pLeader->pSpawn->SpawnID)
+			{
+				if (pChar->pGroupInfo->pLeader->pSpawn->SpawnID != pChar->pSpawn->SpawnID)
+				{
+					bLeader = false; // Hey you aren't the leader, I am turning off leader stuff
+				}
+			}
+			else
 			{
 				bLeader = false; // Hey you aren't the leader, I am turning off leader stuff
 			}
