@@ -1280,10 +1280,10 @@ PLUGIN_API VOID OnPulse(VOID)
 	{
 		if (((PCSIDLWND)(pWnd))->dShow)
 		{
-			if (CXWnd *Child = pWnd->GetChildItem("CD_TextOutput"))
+			if (CStmlWnd*Child = (CStmlWnd*)pWnd->GetChildItem("CD_TextOutput"))
 			{
 				char ConfirmationText[MAX_STRING];
-				GetCXStr(((PCSIDLWND)Child)->SidlText, ConfirmationText, sizeof(ConfirmationText));
+				GetCXStr(Child->STMLText, ConfirmationText, sizeof(ConfirmationText));
 				if (strstr(ConfirmationText, "If you accept"))
 				{
 					if (strstr(ConfirmationText, "you and your group members will lose"))
