@@ -8,7 +8,7 @@
 
 
 #define PLUGIN_NAME					"MQ2AutoGroup"                // Plugin Name
-#define VERSION						1.00
+#define VERSION						1.01
 #define	PLUGIN_MSG					"\ag[MQ2AutoGroup]\ax "     
 #define MAINTANK					1
 #define MAINASSIST					2
