@@ -29,10 +29,12 @@ bool					bLeader = false;
 bool					bUseMerc = false;
 bool					bSummonMerc = true;
 bool					bSummonedMerc = false;
+bool					bSuspendMerc = false;
 bool					bUseStartCommand = false; 
 bool					bGroupComplete = false;
 bool					bAutoGroupSetup = false;
 bool					bInvitingEQBCPlayer = false;
+int						iHandleMerc = 0;
 unsigned int			iGroupNumber = 0;
 unsigned int			iNumberOfGroups = 0;
 char					szMainTank[MAX_STRING] = "NoEntry";
@@ -191,6 +193,7 @@ void RemoveGroupEntry(CHAR* pszGroupEntry, unsigned int iGroupIndex)
 	}
 	return;
 }
+
 void RemoveGroupRole(CHAR* pszGrouprole, unsigned int iGroupIndex)
 {
 	char szTemp1[MAX_STRING];
@@ -224,6 +227,28 @@ void RemoveGroupRole(CHAR* pszGrouprole, unsigned int iGroupIndex)
 	return;
 }
 
+LONG SetBOOL(long Cur, PCHAR Val, PCHAR Sec, PCHAR Key, PCHAR INI)
+{
+	long result = 0;
+	if (!_strnicmp(Val, "false", 5) || !_strnicmp(Val, "off", 3) || !_strnicmp(Val, "0", 1))
+	{
+		result = 0;
+	}
+	else if (!_strnicmp(Val, "true", 4) || !_strnicmp(Val, "on", 2) || !_strnicmp(Val, "1", 1))
+	{
+		result = 1;
+	}
+	else
+	{
+		result = (!Cur) & 1;
+	}
+	if (Sec[0] && Key[0])
+	{
+		WritePrivateProfileString(Sec, Key, result ? "1" : "0", INI);
+	}
+	return result;
+}
+
 void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 {
 
@@ -244,6 +269,12 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	if (!_stricmp(Parm1, "help"))
 	{
 		NeedHelp = true;
+	}
+	else if (!_stricmp(Parm1, "handlemerc"))
+	{
+		if (!_stricmp(Parm2, "on")) iHandleMerc = SetBOOL(iHandleMerc, Parm2, "Settings", "HandleMerc", INIFileName);
+		if (!_stricmp(Parm2, "off")) iHandleMerc = SetBOOL(iHandleMerc, Parm2, "Settings", "HandleMerc", INIFileName);
+		WriteChatf(PLUGIN_MSG ":: Summoning/suspending merc's is turned %s", iHandleMerc ? "\agON\ax" : "\arOFF\ax");
 	}
 	else if (!_stricmp(Parm1, "create"))
 	{
@@ -1044,6 +1075,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	if (NeedHelp) {
 		WriteChatColor("Usage:");
+		WriteChatColor("/AutoGroup handlemerc [on|off] -> Toggle suspending/summoning merc's if your in a group");
 		WriteChatColor("/AutoGroup create -> Create a new group, this player will be the leader.");
 		WriteChatColor("/AutoGroup delete -> Will delete the group this player was in.");
 		WriteChatColor("/AutoGroup startcommand \"Command to be executed\" -> Will execute the command once your group is formed.");
@@ -1130,6 +1162,12 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 		char Version[MAX_STRING] = { 0 };
 		sprintf_s(Version, "%1.2f", VERSION);
 		WritePrivateProfileString("Settings", "Version", Version, INIFileName);
+	}
+	iHandleMerc = GetPrivateProfileInt("Settings", "HandleMerc", -1, INIFileName);
+	if (iHandleMerc == -1)
+	{
+		iHandleMerc = 1;
+		WritePrivateProfileString("Settings", "HandleMerc", "1", INIFileName);
 	}
 	iNumberOfGroups = GetPrivateProfileInt("Settings", "NumberOfGroups", 0, INIFileName);
 	if (iNumberOfGroups == 0)
@@ -1247,6 +1285,11 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 		}
 	}
 	bAutoGroupSetup = true;
+	// Ok so you are in group.  I'm going to turn on merc suspension
+	if (vGroupNames.size())
+	{
+		bSuspendMerc = true;
+	}
 }
 
 // This is called every time MQ pulses
@@ -1299,33 +1342,39 @@ PLUGIN_API VOID OnPulse(VOID)
 		}
 	}
 
-	if (!bSummonedMerc)
+	// If you want the plugin to suspend/summon your merc this is called to setup your group 
+	if (iHandleMerc)
 	{
-		if (bUseMerc)
+		// Ok I'm going to summon a merc if you are suppose to use one
+		if (!bSummonedMerc)
 		{
-			if (GetCharInfo()->pSpawn->MercID == 0)
+			if (bUseMerc)
 			{
-				if (CXWnd *pWnd = FindMQ2Window("MMGW_ManageWnd"))
+				if (GetCharInfo()->pSpawn->MercID == 0)
 				{
-					if (CXWnd *pWndButton = pWnd->GetChildItem("MMGW_SuspendButton"))
+					if (CXWnd *pWnd = FindMQ2Window("MMGW_ManageWnd"))
 					{
-						if (pWndButton->Enabled)
+						if (CXWnd *pWndButton = pWnd->GetChildItem("MMGW_SuspendButton"))
 						{
-							bSummonedMerc = true;
-							WriteChatf(PLUGIN_MSG ":: Summoning mercenary.");
-							SendWndClick2(pWndButton, "leftmouseup");
-							return;
+							if (pWndButton->Enabled)
+							{
+								bSummonedMerc = true;
+								WriteChatf(PLUGIN_MSG ":: Summoning mercenary.");
+								SendWndClick2(pWndButton, "leftmouseup");
+								return;
+							}
 						}
 					}
-				}
-				else if (bSummonMerc)
-				{
-					DoCommand(GetCharInfo()->pSpawn, "/merc");
-					bSummonMerc = false;
+					else if (bSummonMerc)
+					{
+						DoCommand(GetCharInfo()->pSpawn, "/merc");
+						bSummonMerc = false;
+					}
 				}
 			}
 		}
-		else
+		// Ok your not suppose to use a merc, i'm going to suspend them
+		if (bSuspendMerc)
 		{
 			if (GetCharInfo()->pSpawn->MercID > 0)
 			{
@@ -1335,17 +1384,12 @@ PLUGIN_API VOID OnPulse(VOID)
 					{
 						if (pWndButton->Enabled)
 						{
-							bSummonedMerc = true;
+							bSuspendMerc = false;
 							WriteChatf(PLUGIN_MSG ":: Dismissing mercenary.");
 							SendWndClick2(pWndButton, "leftmouseup");
 							return;
 						}
 					}
-				}
-				else if (bSummonMerc)
-				{
-					DoCommand(GetCharInfo()->pSpawn, "/merc");
-					bSummonMerc = false;
 				}
 			}
 		}
