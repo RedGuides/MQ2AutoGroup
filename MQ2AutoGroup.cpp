@@ -166,11 +166,11 @@ void WriteGroupEntry(CHAR* pszGroupEntry, unsigned int iGroupIndex)
 		if (!_stricmp(szTemp3, ""))
 		{
 			WritePrivateProfileString(szTemp1, szTemp2, pszGroupEntry, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: \ag%s\ax has been added to group %i.", pszGroupEntry, iGroupNumber);
+			WriteChatf("%s:: \ag%s\ax has been added to group %i.", PLUGIN_MSG, pszGroupEntry, iGroupNumber);
 			return;
 		}
 	}
-	WriteChatf(PLUGIN_MSG ":: Group %i doesn't have room for\ar%s\ax.", iGroupNumber, pszGroupEntry);
+	WriteChatf("%s:: Group %i doesn't have room for\ar%s\ax.", PLUGIN_MSG, iGroupNumber, pszGroupEntry);
 	return;
 }
 
@@ -187,7 +187,7 @@ void RemoveGroupEntry(CHAR* pszGroupEntry, unsigned int iGroupIndex)
 		if (!_stricmp(szTemp3, pszGroupEntry))
 		{
 			WritePrivateProfileString(szTemp1, szTemp2, "", INIFileName);
-			WriteChatf(PLUGIN_MSG ":: \ar%s\ax has been removed from group %i.", pszGroupEntry, iGroupNumber);
+			WriteChatf("%s:: \ar%s\ax has been removed from group %i.", PLUGIN_MSG, pszGroupEntry, iGroupNumber);
 			return;
 		}
 	}
@@ -274,7 +274,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	{
 		if (!_stricmp(Parm2, "on")) iHandleMerc = SetBOOL(iHandleMerc, Parm2, "Settings", "HandleMerc", INIFileName);
 		if (!_stricmp(Parm2, "off")) iHandleMerc = SetBOOL(iHandleMerc, Parm2, "Settings", "HandleMerc", INIFileName);
-		WriteChatf(PLUGIN_MSG ":: Summoning/suspending merc's is turned %s", iHandleMerc ? "\agON\ax" : "\arOFF\ax");
+		WriteChatf("%s:: Summoning/suspending merc's is turned %s", PLUGIN_MSG, iHandleMerc ? "\agON\ax" : "\arOFF\ax");
 	}
 	else if (!_stricmp(Parm1, "create"))
 	{
@@ -295,11 +295,11 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				sprintf_s(szTemp1, "%i", iGroupNumber);
 				WritePrivateProfileString("Settings", "NumberOfGroups", szTemp1, INIFileName);
 			}
-			WriteChatf(PLUGIN_MSG ":: \agSuccessfully created group: number %i.\ax", iGroupNumber);
+			WriteChatf("%s:: \agSuccessfully created group: number %i.\ax", PLUGIN_MSG, iGroupNumber);
 		}
 		else
 		{
-			WriteChatf(PLUGIN_MSG ":: \agYou are in a group, you cannot be in two groups are the same time.\ax");
+			WriteChatf("%s:: \agYou are in a group, you cannot be in two groups are the same time.\ax", PLUGIN_MSG);
 		}
 	}
 	else if (!_stricmp(Parm1, "delete"))
@@ -315,18 +315,18 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 			WritePrivateProfileString(szTemp1, "Member4", "", INIFileName);
 			WritePrivateProfileString(szTemp1, "Member5", "", INIFileName);
 			WritePrivateProfileString(szTemp1, "Member6", "", INIFileName);
-			WriteChatf(PLUGIN_MSG ":: \arSuccessfully deleted group: number %i.\ax", iGroupNumber);
+			WriteChatf("%s:: \arSuccessfully deleted group: number %i.\ax", PLUGIN_MSG, iGroupNumber);
 		}
 		else
 		{
-			WriteChatf(PLUGIN_MSG ":: \arYou are not in a group, you need to be in a group before you can destoy it.\ax");
+			WriteChatf("%s:: \arYou are not in a group, you need to be in a group before you can destoy it.\ax", PLUGIN_MSG);
 		}
 	}
 	else if (!_stricmp(Parm1, "startcommand"))
 	{
 		sprintf_s(szTemp1, "%s_%s", EQADDR_SERVERNAME, ((PCHARINFO)pCharData)->Name);
 		WritePrivateProfileString("StartCommand", szTemp1, Parm2, INIFileName);
-		WriteChatf(PLUGIN_MSG ":: Setting the start command to: \ag%s\ax", Parm2);
+		WriteChatf("%s:: Setting the start command to: \ag%s\ax", PLUGIN_MSG, Parm2);
 	}
 	else if (!_stricmp(Parm1, "set"))
 	{
@@ -359,7 +359,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
@@ -372,7 +372,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 						GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp4, MAX_STRING, INIFileName);
 						if (strstr(szTemp4, szTemp3))
 						{
-							WriteChatf(PLUGIN_MSG ":: \ag%s\ax has been made \agMain Tank\ax for group %i.", szTemp3, iGroupNumber);
+							WriteChatf("%s:: \ag%s\ax has been made \agMain Tank\ax for group %i.", PLUGIN_MSG, szTemp3, iGroupNumber);
 							RemoveGroupRole("Main Tank", iGroupNumber);
 							sprintf_s(szTemp3, "%s|Main Tank", szTemp4);
 							WritePrivateProfileString(szTemp1, szTemp2, szTemp3, INIFileName);
@@ -382,12 +382,12 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Main Tank");
+					WriteChatf("%s:: Your target needs to be in a group to make them Main Tank", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Main Tank");
+				WriteChatf("%s:: You need to target someone to make them Main Tank", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "mainassist"))
@@ -419,7 +419,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
@@ -432,7 +432,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 						GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp4, MAX_STRING, INIFileName);
 						if (strstr(szTemp4, szTemp3))
 						{
-							WriteChatf(PLUGIN_MSG ":: \ag%s\ax has been made \agMain Assist\ax for group %i.", szTemp3, iGroupNumber);
+							WriteChatf("%s:: \ag%s\ax has been made \agMain Assist\ax for group %i.", PLUGIN_MSG, szTemp3, iGroupNumber);
 							RemoveGroupRole("Main Assist", iGroupNumber);
 							sprintf_s(szTemp3, "%s|Main Assist", szTemp4);
 							WritePrivateProfileString(szTemp1, szTemp2, szTemp3, INIFileName);
@@ -442,12 +442,12 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Main Assist");
+					WriteChatf("%s:: Your target needs to be in a group to make them Main Assist", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Main Assist");
+				WriteChatf("%s:: You need to target someone to make them Main Assist", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "puller"))
@@ -479,7 +479,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
@@ -492,7 +492,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 						GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp4, MAX_STRING, INIFileName);
 						if (strstr(szTemp4, szTemp3))
 						{
-							WriteChatf(PLUGIN_MSG ":: \ag%s\ax has been made \agPuller\ax for group %i.", szTemp3, iGroupNumber);
+							WriteChatf("%s:: \ag%s\ax has been made \agPuller\ax for group %i.", PLUGIN_MSG, szTemp3, iGroupNumber);
 							RemoveGroupRole("Puller", iGroupNumber);
 							sprintf_s(szTemp3, "%s|Puller", szTemp4);
 							WritePrivateProfileString(szTemp1, szTemp2, szTemp3, INIFileName);
@@ -502,12 +502,12 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Puller");
+					WriteChatf("%s:: Your target needs to be in a group to make them Puller", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Puller");
+				WriteChatf("%s:: You need to target someone to make them Puller", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "marknpc"))
@@ -539,7 +539,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
@@ -552,7 +552,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 						GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp4, MAX_STRING, INIFileName);
 						if (strstr(szTemp4, szTemp3))
 						{
-							WriteChatf(PLUGIN_MSG ":: \ag%s\ax has been made \agMark NPC\ax for group %i.", szTemp3, iGroupNumber);
+							WriteChatf("%s:: \ag%s\ax has been made \agMark NPC\ax for group %i.", PLUGIN_MSG, szTemp3, iGroupNumber);
 							RemoveGroupRole("Mark NPC", iGroupNumber);
 							sprintf_s(szTemp3, "%s|Mark NPC", szTemp4);
 							WritePrivateProfileString(szTemp1, szTemp2, szTemp3, INIFileName);
@@ -562,12 +562,12 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Mark NPC");
+					WriteChatf("%s:: Your target needs to be in a group to make them Mark NPC", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Mark NPC");
+				WriteChatf("%s:: You need to target someone to make them Mark NPC", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "masterlooter"))
@@ -599,7 +599,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
@@ -612,7 +612,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 						GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp4, MAX_STRING, INIFileName); //szTemp4 = Entry for (Group#, Member#)
 						if (strstr(szTemp4, szTemp3))
 						{
-							WriteChatf(PLUGIN_MSG ":: \ag%s\ax has been made \agMaster Looter\ax for group %i.", szTemp3, iGroupNumber);
+							WriteChatf("%s:: \ag%s\ax has been made \agMaster Looter\ax for group %i.", PLUGIN_MSG, szTemp3, iGroupNumber);
 							RemoveGroupRole("Master Looter", iGroupNumber);
 							sprintf_s(szTemp3, "%s|Master Looter", szTemp4);
 							WritePrivateProfileString(szTemp1, szTemp2, szTemp3, INIFileName);
@@ -622,17 +622,17 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Master Looter");
+					WriteChatf("%s:: Your target needs to be in a group to make them Master Looter", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Master Looter");
+				WriteChatf("%s:: You need to target someone to make them Master Looter", PLUGIN_MSG);
 			}
 		}
 		else
 		{
-			WriteChatf(PLUGIN_MSG ":: \ar%s\ax is an invalid entry, please use /AutoGroup set [maintank|mainassist|puller|marknpc|masterlooter]", Parm2);
+			WriteChatf("%s:: \ar%s\ax is an invalid entry, please use /AutoGroup set [maintank|mainassist|puller|marknpc|masterlooter]", PLUGIN_MSG, Parm2);
 		}
 	}
 	else if (!_stricmp(Parm1, "add"))
@@ -662,22 +662,22 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 						}
 						else
 						{
-							WriteChatf(PLUGIN_MSG ":: \ar%s\ax is already in a group, please remove them first before adding them to this group", psTarget->Name);
+							WriteChatf("%s:: \ar%s\ax is already in a group, please remove them first before adding them to this group", PLUGIN_MSG, psTarget->Name);
 						}
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: \arYou are not in a group, you need to create a group or be added to a group before you can add someone to it.\ax");
+						WriteChatf("%s:: \arYou are not in a group, you need to create a group or be added to a group before you can add someone to it.\ax", PLUGIN_MSG);
 					}
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: You need to target a player to add them to your group");
+					WriteChatf("%s:: You need to target a player to add them to your group", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target a player to add them to your group");
+				WriteChatf("%s:: You need to target a player to add them to your group", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "merc"))
@@ -696,36 +696,36 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 							if (FindGroupNumber(szTemp4) == 0)
 							{
 								WriteGroupEntry(szTemp4, iGroupNumber);
-								WriteChatf(PLUGIN_MSG ":: A mercenary has been added to group %i for \ag%s\ax", iGroupNumber, psTarget->Name);
+								WriteChatf("%s:: A mercenary has been added to group %i for \ag%s\ax", PLUGIN_MSG, iGroupNumber, psTarget->Name);
 							}
 							else
 							{
-								WriteChatf(PLUGIN_MSG ":: \ar%s\ax already has a mercenary in the group", psTarget->Name);
+								WriteChatf("%s:: \ar%s\ax already has a mercenary in the group", PLUGIN_MSG, psTarget->Name);
 							}
 						}
 						else
 						{
-							WriteChatf(PLUGIN_MSG ":: \ar%s\ax is not in a group, please add them first before adding their mercenary", psTarget->Name);
+							WriteChatf("%s:: \ar%s\ax is not in a group, please add them first before adding their mercenary", PLUGIN_MSG, psTarget->Name);
 						}
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: \arYou are not in a group, you need to create or be added to a group before you can add to it.\ax");
+						WriteChatf("%s:: \arYou are not in a group, you need to create or be added to a group before you can add to it.\ax", PLUGIN_MSG);
 					}
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: You need to target a player to add their mercenary to your group");
+					WriteChatf("%s:: You need to target a player to add their mercenary to your group", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target a player to add their mercenary to your group");
+				WriteChatf("%s:: You need to target a player to add their mercenary to your group", PLUGIN_MSG);
 			}
 		}
 		else
 		{
-			WriteChatf(PLUGIN_MSG ":: \ar%s\ax is an invalid entry, please use /AutoGroup add [player|merc]", Parm2);
+			WriteChatf("%s:: \ar%s\ax is an invalid entry, please use /AutoGroup add [player|merc]", PLUGIN_MSG, Parm2);
 		}
 	}
 	else if (!_stricmp(Parm1, "remove"))
@@ -752,17 +752,17 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: \ar%s cannot be removed from a group because they are not in a group.\ax", psTarget->Name);
+						WriteChatf("%s:: \ar%s cannot be removed from a group because they are not in a group.\ax", PLUGIN_MSG, psTarget->Name);
 					}
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: You need to target a player to remove them from a group");
+					WriteChatf("%s:: You need to target a player to remove them from a group", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target a player to remove them from a group");
+				WriteChatf("%s:: You need to target a player to remove them from a group", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "merc"))
@@ -780,17 +780,17 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: \arYou cannot remove %s's mercenary because they don't have a mercenary.\ax", psTarget->Name);
+						WriteChatf("%s:: \arYou cannot remove %s's mercenary because they don't have a mercenary.\ax", PLUGIN_MSG, psTarget->Name);
 					}
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: You need to target a player to remove their mercenary a group");
+					WriteChatf("%s:: You need to target a player to remove their mercenary a group", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target a player to remove their mercenary a group");
+				WriteChatf("%s:: You need to target a player to remove their mercenary a group", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "maintank"))
@@ -822,23 +822,23 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
 				if (iGroupNumber > 0)
 				{
-					WriteChatf(PLUGIN_MSG ":: Removing \aRMain Tank\ax from group %i.", iGroupNumber);
+					WriteChatf("%s:: Removing \aRMain Tank\ax from group %i.", PLUGIN_MSG, iGroupNumber);
 					RemoveGroupRole("Main Tank", iGroupNumber);
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Main Tank");
+					WriteChatf("%s:: Your target needs to be in a group to make them Main Tank", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Main Tank");
+				WriteChatf("%s:: You need to target someone to make them Main Tank", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "mainassist"))
@@ -870,23 +870,23 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
 				if (iGroupNumber > 0)
 				{
-					WriteChatf(PLUGIN_MSG ":: Removing \aRMain Assist\ax from group %i.", iGroupNumber);
+					WriteChatf("%s:: Removing \aRMain Assist\ax from group %i.", PLUGIN_MSG, iGroupNumber);
 					RemoveGroupRole("Main Assist", iGroupNumber);
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Main Assist");
+					WriteChatf("%s:: Your target needs to be in a group to make them Main Assist", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Main Assist");
+				WriteChatf("%s:: You need to target someone to make them Main Assist", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "puller"))
@@ -918,23 +918,23 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
 				if (iGroupNumber > 0)
 				{
-					WriteChatf(PLUGIN_MSG ":: Removing \aRPuller\ax from group %i.", iGroupNumber);
+					WriteChatf("%s:: Removing \aRPuller\ax from group %i.", PLUGIN_MSG, iGroupNumber);
 					RemoveGroupRole("Puller", iGroupNumber);
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Puller");
+					WriteChatf("%s:: Your target needs to be in a group to make them Puller", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Puller");
+				WriteChatf("%s:: You need to target someone to make them Puller", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "marknpc"))
@@ -966,23 +966,23 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
 				if (iGroupNumber > 0)
 				{
-					WriteChatf(PLUGIN_MSG ":: Removing \aRMark NPC\ax from group %i.", iGroupNumber);
+					WriteChatf("%s:: Removing \aRMark NPC\ax from group %i.", PLUGIN_MSG, iGroupNumber);
 					RemoveGroupRole("Mark NPC", iGroupNumber);
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Mark NPC");
+					WriteChatf("%s:: Your target needs to be in a group to make them Mark NPC", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Mark NPC");
+				WriteChatf("%s:: You need to target someone to make them Mark NPC", PLUGIN_MSG);
 			}
 		}
 		else if (!_stricmp(Parm2, "masterlooter"))
@@ -1014,60 +1014,60 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					}
 					else
 					{
-						WriteChatf(PLUGIN_MSG ":: You need to be grouped with a mercenary before you can assign it a group role");
+						WriteChatf("%s:: You need to be grouped with a mercenary before you can assign it a group role", PLUGIN_MSG);
 						return;
 					}
 				}
 				if (iGroupNumber > 0)
 				{
-					WriteChatf(PLUGIN_MSG ":: Removing \aRMaster Looter\ax from group %i.", iGroupNumber);
+					WriteChatf("%s:: Removing \aRMaster Looter\ax from group %i.", PLUGIN_MSG, iGroupNumber);
 					RemoveGroupRole("Master Looter", iGroupNumber);
 				}
 				else
 				{
-					WriteChatf(PLUGIN_MSG ":: Your target needs to be in a group to make them Master Looter");
+					WriteChatf("%s:: Your target needs to be in a group to make them Master Looter", PLUGIN_MSG);
 				}
 			}
 			else
 			{
-				WriteChatf(PLUGIN_MSG ":: You need to target someone to make them Master Looter");
+				WriteChatf("%s:: You need to target someone to make them Master Looter", PLUGIN_MSG);
 			}
 		}
 		else
 		{
-			WriteChatf(PLUGIN_MSG ":: \ar%s\ax is an invalid entry, please use /AutoGroup add [player|merc|maintank|mainassist|puller|marknpc|masterlooter]", Parm2);
+			WriteChatf("%s:: \ar%s\ax is an invalid entry, please use /AutoGroup add [player|merc|maintank|mainassist|puller|marknpc|masterlooter]", PLUGIN_MSG, Parm2);
 		}
 	}
 	else if (!_stricmp(Parm1, "status"))
 	{
 		sprintf_s(szTemp1, "%s_%s", EQADDR_SERVERNAME, ((PCHARINFO)pCharData)->Name);
 		GetPrivateProfileString("StartCommand", szTemp1, "NoEntry", szTemp2, MAX_STRING, INIFileName);
-		WriteChatf(PLUGIN_MSG ":: My command to run once the group is formed is: \ag%s\ax",szTemp2);
+		WriteChatf("%s:: My command to run once the group is formed is: \ag%s\ax", PLUGIN_MSG,szTemp2);
 		iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
 		if (iGroupNumber > 0)
 		{
 			sprintf_s(szTemp1, "Group%i", iGroupNumber);
 			GetPrivateProfileString(szTemp1, "Member1", "NoEntry", szTemp2, MAX_STRING, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: Group member 1 is: \ag%s\ax", szTemp2);
+			WriteChatf("%s:: Group member 1 is: \ag%s\ax", PLUGIN_MSG, szTemp2);
 			GetPrivateProfileString(szTemp1, "Member2", "NoEntry", szTemp2, MAX_STRING, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: Group member 2 is: \ag%s\ax", szTemp2);
+			WriteChatf("%s:: Group member 2 is: \ag%s\ax", PLUGIN_MSG, szTemp2);
 			GetPrivateProfileString(szTemp1, "Member3", "NoEntry", szTemp2, MAX_STRING, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: Group member 3 is: \ag%s\ax", szTemp2);
+			WriteChatf("%s:: Group member 3 is: \ag%s\ax", PLUGIN_MSG, szTemp2);
 			GetPrivateProfileString(szTemp1, "Member4", "NoEntry", szTemp2, MAX_STRING, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: Group member 4 is: \ag%s\ax", szTemp2);
+			WriteChatf("%s:: Group member 4 is: \ag%s\ax", PLUGIN_MSG, szTemp2);
 			GetPrivateProfileString(szTemp1, "Member5", "NoEntry", szTemp2, MAX_STRING, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: Group member 5 is: \ag%s\ax", szTemp2);
+			WriteChatf("%s:: Group member 5 is: \ag%s\ax", PLUGIN_MSG, szTemp2);
 			GetPrivateProfileString(szTemp1, "Member6", "NoEntry", szTemp2, MAX_STRING, INIFileName);
-			WriteChatf(PLUGIN_MSG ":: Group member 6 is: \ag%s\ax", szTemp2);
+			WriteChatf("%s:: Group member 6 is: \ag%s\ax", PLUGIN_MSG, szTemp2);
 		}
 		else
 		{
-			WriteChatf(PLUGIN_MSG ":: You are not a member of a group!");
+			WriteChatf("%s:: You are not a member of a group!", PLUGIN_MSG);
 		}
 	}
 	else if (!_stricmp(Parm1, "test"))
 	{
-		WriteChatf(PLUGIN_MSG ":: GetCharInfo()->pSpawn->MercID = \ag%i\ax", GetCharInfo()->pSpawn->MercID);
+		WriteChatf("%s:: GetCharInfo()->pSpawn->MercID = \ag%i\ax", PLUGIN_MSG, GetCharInfo()->pSpawn->MercID);
 	}
 	else
 	{
@@ -1179,7 +1179,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 	if (GetPrivateProfileString("StartCommand", szTemp1, 0, szStartCommand, MAX_STRING, INIFileName) != 0)
 	{
 		bUseStartCommand = true;
-		WriteChatf(PLUGIN_MSG ":: I want to use the start command: \ag%s\ax", szStartCommand);
+		WriteChatf("%s:: I want to use the start command: \ag%s\ax", PLUGIN_MSG, szStartCommand);
 	}
 
 	iGroupNumber = 0;
@@ -1198,7 +1198,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 						if (strstr(szTemp3, "Merc") && strstr(szTemp3, ((PCHARINFO)pCharData)->Name))
 						{
 							bUseMerc = true;
-							WriteChatf(PLUGIN_MSG ":: \arI am to use a mercenary\ax");
+							WriteChatf("%s:: \arI am to use a mercenary\ax", PLUGIN_MSG);
 						}
 						else if (strstr(szTemp3, ((PCHARINFO)pCharData)->Name))
 						{
@@ -1231,7 +1231,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 					pParsedValue = strtok_s(NULL, "|", &pParsedToken);
 					if (pParsedValue == NULL)
 					{
-						WriteChatf(PLUGIN_MSG ":: Whoa friend, your group has a merc without an owner.  Please edit MQ2AutoGroup.ini to give it an owner.");
+						WriteChatf("%s:: Whoa friend, your group has a merc without an owner.  Please edit MQ2AutoGroup.ini to give it an owner.", PLUGIN_MSG);
 					}
 					else
 					{
@@ -1257,27 +1257,27 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 					if (!_stricmp(pParsedValue, "Main Tank"))
 					{
 						sprintf_s(szMainTank, "%s", szTemp4);
-						WriteChatf(PLUGIN_MSG ":: The main tank is \ag%s\ax", szTemp4);
+						WriteChatf("%s:: The main tank is \ag%s\ax", PLUGIN_MSG, szTemp4);
 					}
 					else if (!_stricmp(pParsedValue, "Main Assist"))
 					{
 						sprintf_s(szMainAssist, "%s", szTemp4);
-						WriteChatf(PLUGIN_MSG ":: The main assist is \ag%s\ax", szTemp4);
+						WriteChatf("%s:: The main assist is \ag%s\ax", PLUGIN_MSG, szTemp4);
 					}
 					else if (!_stricmp(pParsedValue, "Puller"))
 					{
 						sprintf_s(szPuller, "%s", szTemp4);
-						WriteChatf(PLUGIN_MSG ":: The puller is \ag%s\ax", szTemp4);
+						WriteChatf("%s:: The puller is \ag%s\ax", PLUGIN_MSG, szTemp4);
 					}
 					else if (!_stricmp(pParsedValue, "Mark NPC"))
 					{
 						sprintf_s(szMarkNPC, "%s", szTemp4);
-						WriteChatf(PLUGIN_MSG ":: The mark npc is \ag%s\ax", szTemp4);
+						WriteChatf("%s:: The mark npc is \ag%s\ax", PLUGIN_MSG, szTemp4);
 					}
 					else if (!_stricmp(pParsedValue, "Master Looter"))
 					{
 						sprintf_s(szMasterLooter, "%s", szTemp4);
-						WriteChatf(PLUGIN_MSG ":: The master looter is \ag%s\ax", szTemp4);
+						WriteChatf("%s:: The master looter is \ag%s\ax", PLUGIN_MSG, szTemp4);
 					}
 					pParsedValue = strtok_s(NULL, "|", &pParsedToken);
 				}
@@ -1359,7 +1359,7 @@ PLUGIN_API VOID OnPulse(VOID)
 							if (pWndButton->Enabled)
 							{
 								bSummonedMerc = true;
-								WriteChatf(PLUGIN_MSG ":: Summoning mercenary.");
+								WriteChatf("%s:: Summoning mercenary.", PLUGIN_MSG);
 								SendWndClick2(pWndButton, "leftmouseup");
 								return;
 							}
@@ -1385,7 +1385,7 @@ PLUGIN_API VOID OnPulse(VOID)
 						if (pWndButton->Enabled)
 						{
 							bSuspendMerc = false;
-							WriteChatf(PLUGIN_MSG ":: Dismissing mercenary.");
+							WriteChatf("%s:: Dismissing mercenary.", PLUGIN_MSG);
 							SendWndClick2(pWndButton, "leftmouseup");
 							return;
 						}
@@ -1417,35 +1417,35 @@ PLUGIN_API VOID OnPulse(VOID)
 					if (!_stricmp(szMainTank, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 1", szTemp2);
-						WriteChatf(PLUGIN_MSG ":: Setting \ag%s\ax to be main tank", szTemp2);
+						WriteChatf("%s:: Setting \ag%s\ax to be main tank", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMainTank, "Done");
 					}
 					else if (!_stricmp(szMainAssist, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 2", szTemp2);
-						WriteChatf(PLUGIN_MSG ":: Setting \ag%s\ax to be main assist", szTemp2);
+						WriteChatf("%s:: Setting \ag%s\ax to be main assist", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMainAssist, "Done");
 					}
 					else if (!_stricmp(szPuller, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 3", szTemp2);
-						WriteChatf(PLUGIN_MSG ":: Setting \ag%s\ax to be puller", szTemp2);
+						WriteChatf("%s:: Setting \ag%s\ax to be puller", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szPuller, "Done");
 					}
 					else if (!_stricmp(szMarkNPC, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 4", szTemp2);
-						WriteChatf(PLUGIN_MSG ":: Setting \ag%s\ax to be mark npc", szTemp2);
+						WriteChatf("%s:: Setting \ag%s\ax to be mark npc", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMarkNPC, "Done");
 					}
 					else if (!_stricmp(szMasterLooter, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 5", szTemp2);
-						WriteChatf(PLUGIN_MSG ":: Setting \ag%s\ax to be master looter", szTemp2);
+						WriteChatf("%s:: Setting \ag%s\ax to be master looter", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMasterLooter, "Done");
 					}
@@ -1551,7 +1551,7 @@ PLUGIN_API VOID OnPulse(VOID)
 					pParsedValue = strtok_s(NULL, "|", &pParsedToken);
 					if (pParsedValue == NULL)
 					{
-						WriteChatf(PLUGIN_MSG ":: Whoa friend, your group has a merc without an owner.  Please edit MQ2AutoGroup.ini to give it an owner.");
+						WriteChatf("%s:: Whoa friend, your group has a merc without an owner.  Please edit MQ2AutoGroup.ini to give it an owner.", PLUGIN_MSG);
 						vGroupNames.erase(vGroupNames.begin() + a);
 					}
 					else
@@ -1563,7 +1563,7 @@ PLUGIN_API VOID OnPulse(VOID)
 								GetCXStr(pChar->pGroupInfo->pMember[k]->pOwner, szTemp2, MAX_STRING);
 								if (!_stricmp(pParsedValue, szTemp2))
 								{
-									WriteChatf(PLUGIN_MSG ":: The mercenary owned by \ag%s\ax is in the group!", szTemp2);
+									WriteChatf("%s:: The mercenary owned by \ag%s\ax is in the group!", PLUGIN_MSG, szTemp2);
 									vGroupNames.erase(vGroupNames.begin() + a);
 								}
 							}
@@ -1579,7 +1579,7 @@ PLUGIN_API VOID OnPulse(VOID)
 							GetCXStr(pChar->pGroupInfo->pMember[k]->pName, szTemp2, MAX_STRING);
 							if (!_stricmp(szTemp1, szTemp2))
 							{
-								WriteChatf(PLUGIN_MSG ":: \ag%s\ax is in the group!", szTemp2);
+								WriteChatf("%s:: \ag%s\ax is in the group!", PLUGIN_MSG, szTemp2);
 								vGroupNames.erase(vGroupNames.begin() + a);
 							}
 						}
@@ -1589,7 +1589,7 @@ PLUGIN_API VOID OnPulse(VOID)
 		}
 		else if (bUseStartCommand)
 		{
-			WriteChatf(PLUGIN_MSG ":: Group is formed! Running: \ag%s\ax", szStartCommand);
+			WriteChatf("%s:: Group is formed! Running: \ag%s\ax", PLUGIN_MSG, szStartCommand);
 			DoCommand(GetCharInfo()->pSpawn, szStartCommand);
 			bUseStartCommand = false;
 		}
@@ -1615,7 +1615,7 @@ PLUGIN_API DWORD OnIncomingChat(PCHAR Line, DWORD Color)
 			if (!_strcmpi(szName, vRef.c_str())) 
 			{
 				DoCommand(GetCharInfo()->pSpawn, "/timed 50 /invite");
-				WriteChatf(PLUGIN_MSG ":: Joining group with \ag%s\ax", szName);
+				WriteChatf("%s:: Joining group with \ag%s\ax", PLUGIN_MSG, szName);
 			}
 		}
 	}
