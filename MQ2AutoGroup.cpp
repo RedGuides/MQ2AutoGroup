@@ -64,7 +64,7 @@ inline bool InGameOK()
 // Returns TRUE if the specified UI window is visible
 inline bool WinState(CXWnd *Wnd)
 {
-	return (Wnd && ((PCSIDLWND)Wnd)->dShow);
+	return (Wnd && ((PCSIDLWND)Wnd)->IsVisible());
 }
 #pragma endregion Inlines
 
@@ -1321,7 +1321,7 @@ PLUGIN_API VOID OnPulse(VOID)
 	// When confirmation box for joining groups when you have a merc up it will join
 	if (CXWnd *pWnd = (CXWnd *)FindMQ2Window("ConfirmationDialogBox"))
 	{
-		if (((PCSIDLWND)(pWnd))->dShow)
+		if (((PCSIDLWND)(pWnd))->IsVisible())
 		{
 			if (CStmlWnd*Child = (CStmlWnd*)pWnd->GetChildItem("CD_TextOutput"))
 			{
@@ -1356,7 +1356,7 @@ PLUGIN_API VOID OnPulse(VOID)
 					{
 						if (CXWnd *pWndButton = pWnd->GetChildItem("MMGW_SuspendButton"))
 						{
-							if (pWndButton->Enabled)
+							if (pWndButton->IsEnabled())
 							{
 								bSummonedMerc = true;
 								WriteChatf("%s:: Summoning mercenary.", PLUGIN_MSG);
@@ -1382,7 +1382,7 @@ PLUGIN_API VOID OnPulse(VOID)
 				{
 					if (CXWnd *pWndButton = pWnd->GetChildItem("MMGW_SuspendButton"))
 					{
-						if (pWndButton->Enabled)
+						if (pWndButton->IsEnabled())
 						{
 							bSuspendMerc = false;
 							WriteChatf("%s:: Dismissing mercenary.", PLUGIN_MSG);
