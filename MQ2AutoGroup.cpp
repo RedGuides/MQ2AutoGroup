@@ -34,6 +34,7 @@ bool					bSuspendMerc = false;
 bool					bUseStartCommand = false; 
 bool					bGroupComplete = false;
 bool					bInvitingPlayer = false; // Used to limit the number of threads for inviting eqbc/dannet spots in the group to 1 at a time
+bool					bAutoGroupSetup = false;
 int						iHandleMerc = 0;
 unsigned int			iGroupNumber = 0;
 unsigned int			iNumberOfGroups = 0;
@@ -141,6 +142,7 @@ unsigned int FindGroupNumber(CHAR* pszGroupEntry)
 	char szTemp1[MAX_STRING];
 	char szTemp2[MAX_STRING];
 	char szTemp3[MAX_STRING];
+	char szTemp4[MAX_STRING];
 	iNumberOfGroups = GetPrivateProfileInt("Settings", "NumberOfGroups", 0, INIFileName);
 	unsigned int iGroupIndex = 0;
 	for (unsigned int a = 1; a < iNumberOfGroups + 1; a++)
@@ -155,10 +157,36 @@ unsigned int FindGroupNumber(CHAR* pszGroupEntry)
 					sprintf_s(szTemp2, "Member%i", b);
 					if (GetPrivateProfileString(szTemp1, szTemp2, 0, szTemp3, MAX_STRING, INIFileName) != 0)
 					{
-						if (strstr(szTemp3, pszGroupEntry))
+						char * pch;
+						sprintf_s(szTemp4, "|");
+						pch = strstr(szTemp3, szTemp4);
+						if (pch)
+						{
+							memset(pch, '\0', sizeof(char)); // Lets add a null where we have our first | that should eliminate all the stuff about masterlooter/maintank/etc
+						}
+						/*
+						char * pch1;
+						pch1 = strstr(szTemp3, pszGroupEntry);
+						WriteChatf("%s:: pch1 = \ag%s\ax.", PLUGIN_MSG, pch1);
+						WriteChatf("%s:: szTemp3 = \ag%s\ax.", PLUGIN_MSG, szTemp3);
+						if (pch1)
+						{
+							iGroupIndex = a;
+						}*/
+						if (!_stricmp(szTemp3, pszGroupEntry))
 						{
 							iGroupIndex = a;
 						}
+						/*
+						char * pch;
+						pch = strstr(szTemp3, pszGroupEntry);
+						if (strstr(szTemp3, pszGroupEntry))
+						{
+							iGroupIndex = a;
+							char * pch;
+							pch = strstr(szTemp3, pszGroupEntry);
+							WriteChatf("%s:: \ar%s\ax.", PLUGIN_MSG, pch);
+						}*/
 					}
 				}
 			}
@@ -344,7 +372,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	else if (!_stricmp(Parm1, "add"))
 	{
 		iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
-		if (iGroupNumber >= 0)
+		if (iGroupNumber == 0)
 		{
 			WriteChatf("%s:: \arYou are not in a group, you need to create a group or be added to a group before you can add someone to it.\ax", PLUGIN_MSG);
 			return;
@@ -808,7 +836,9 @@ PLUGIN_API VOID ShutdownPlugin(VOID)
 // Called once directly after initialization, and then every time the gamestate changes
 PLUGIN_API VOID SetGameState(DWORD GameState)
 {
+	if (GetGameState() == GAMESTATE_CHARSELECT && bAutoGroupSetup) bAutoGroupSetup = false; // will reset the plugin when you are in the char selection screen
 	if (!InGameOK()) return;
+	if (bAutoGroupSetup) return;
 	char szTemp1[MAX_STRING];
 	char szTemp2[MAX_STRING];
 	char szTemp3[MAX_STRING];
@@ -946,12 +976,12 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 			}
 		}
 	}
-
 	// Ok so you are in full group, and you aren't going to use a merc.  I'm going to turn on merc suspension
 	if (vGroupNames.size() == 6 && !bUseMerc)
 	{
 		bSuspendMerc = true;
 	}
+	bAutoGroupSetup = true;
 }
 
 // Will click the confirmation box for joining groups when you have a merc up it
