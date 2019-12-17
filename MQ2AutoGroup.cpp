@@ -8,80 +8,61 @@
 // v1.01 :: Plure - 2017-11-09 Changed how we handle mercs
 // v1.02 :: Plure - 2019-10-08 Added support for MQ2Dannet
 
-#define PLUGIN_NAME					"MQ2AutoGroup"                // Plugin Name
-#define VERSION						1.02
-#define	PLUGIN_MSG					"\ag[MQ2AutoGroup]\ax "     
-#define MAINTANK					1
-#define MAINASSIST					2
-#define PULLER						3
-#define MARKNPC						4
-#define MASTERLOOTER				5
-
-#ifndef PLUGIN_API
-#include "../MQ2Plugin.h"
-using namespace std;
-PreSetup(PLUGIN_NAME);
-PLUGIN_VERSION(VERSION);
-#endif PLUGIN_API
+#include <mq/Plugin.h>
 
 #include <vector>
 
-bool					bLeader = false;
-bool					bUseMerc = false;
-bool					bSummonMerc = true;
-bool					bSummonedMerc = false;
-bool					bSuspendMerc = false;
-bool					bUseStartCommand = false; 
-bool					bGroupComplete = false;
-bool					bInvitingPlayer = false; // Used to limit the number of threads for inviting eqbc/dannet spots in the group to 1 at a time
-bool					bAutoGroupSetup = false;
-int						iHandleMerc = 0;
-unsigned int			iGroupNumber = 0;
-unsigned int			iNumberOfGroups = 0;
-char					szMainTank[MAX_STRING] = "NoEntry";
-char					szMainAssist[MAX_STRING] = "NoEntry";
-char					szPuller[MAX_STRING] = "NoEntry";
-char					szMarkNPC[MAX_STRING] = "NoEntry";
-char					szMasterLooter[MAX_STRING] = "NoEntry";
-char					szStartCommand[MAX_STRING]; 
-char					szCommand[MAX_STRING];
-vector <string>			vGroupNames;
-vector <string>			vInviteNames;
-SEARCHSPAWN				ssPCSearchCondition;
+PreSetup("MQ2AutoGroup");
+PLUGIN_VERSION(1.02);
 
+constexpr auto PLUGIN_MSG = "\ag[MQ2AutoGroup]\ax ";
 
-#pragma region Inlines
+bool bLeader = false;
+bool bUseMerc = false;
+bool bSummonMerc = true;
+bool bSummonedMerc = false;
+bool bSuspendMerc = false;
+bool bUseStartCommand = false; 
+bool bGroupComplete = false;
+bool bInvitingPlayer = false; // Used to limit the number of threads for inviting eqbc/dannet spots in the group to 1 at a time
+bool bAutoGroupSetup = false;
+int	iHandleMerc = 0;
+int iGroupNumber = 0;
+int iNumberOfGroups = 0;
+char szMainTank[MAX_STRING] = "NoEntry";
+char szMainAssist[MAX_STRING] = "NoEntry";
+char szPuller[MAX_STRING] = "NoEntry";
+char szMarkNPC[MAX_STRING] = "NoEntry";
+char szMasterLooter[MAX_STRING] = "NoEntry";
+char szStartCommand[MAX_STRING]; 
+char szCommand[MAX_STRING];
+std::vector<std::string> vGroupNames;
+std::vector<std::string> vInviteNames;
+MQSpawnSearch ssPCSearchCondition;
+
 // Returns TRUE if character is in game and has valid character data structures
 inline bool InGameOK()
 {
-	return(GetGameState() == GAMESTATE_INGAME && GetCharInfo() && GetCharInfo()->pSpawn && GetCharInfo2());
+	return(GetGameState() == GAMESTATE_INGAME && GetCharInfo() && GetCharInfo()->pSpawn && GetPcProfile());
 }
-
-// Returns TRUE if the specified UI window is visible
-inline bool WinState(CXWnd *Wnd)
-{
-	return (Wnd && ((PCSIDLWND)Wnd)->IsVisible());
-}
-#pragma endregion Inlines
 
 // This is the region for connecting to other plugins
-PMQPLUGIN Plugin(char* PluginName)
+MQPlugin* Plugin(std::string_view PluginName)
 {
-	long Length = strlen(PluginName) + 1;
-	PMQPLUGIN pLook = pPlugins;
-	while (pLook && _strnicmp(PluginName, pLook->szFilename, Length)) pLook = pLook->pNext;
+	auto pLook = pPlugins;
+	while (pLook && ci_equals(PluginName, pLook->szFilename)) pLook = pLook->pNext;
 	return pLook;
 }
 
-bool CheckEQBC(PCHAR szName)
+bool CheckEQBC(char* szName)
 {
-	if (PMQPLUGIN pLook = Plugin("mq2eqbc"))
+	if (MQPlugin* pLook = Plugin("mq2eqbc"))
 	{
 		if (unsigned short(*fisConnected)() = (unsigned short(*)())GetProcAddress(pLook->hModule, "isConnected"))
 		{
 			if (fisConnected())
 			{
-				if (bool(*fAreTheyConnected)(char* szName) = (bool(*)(char* szName))GetProcAddress(pLook->hModule, "AreTheyConnected"))
+				if (bool(*fAreTheyConnected)(char* name) = (bool(*)(char* name))GetProcAddress(pLook->hModule, "AreTheyConnected"))
 				{
 					if (fAreTheyConnected(szName))
 					{
@@ -94,9 +75,9 @@ bool CheckEQBC(PCHAR szName)
 	return false;
 }
 
-bool CheckDanNet(PCHAR szName)
+bool CheckDanNet(char* szName)
 {
-	if (PMQPLUGIN pLook = Plugin("mq2dannet"))
+	if (MQPlugin* pLook = Plugin("mq2dannet"))
 	{
 		if (bool(*f_peer_connected)(const std::string& name) = (bool(*)(const std::string& name))GetProcAddress(pLook->hModule, "peer_connected"))
 		{
@@ -111,20 +92,19 @@ bool CheckDanNet(PCHAR szName)
 	return false;
 }
 
-unsigned int FindCreateGroupIndex(void)
+int FindCreateGroupIndex()
 {
-	char szTemp1[MAX_STRING];
-	char szTemp2[MAX_STRING];
-	char szTemp3[MAX_STRING];
-	unsigned int a;
-	for (a = 1; a < iNumberOfGroups + 1; a++)
+	int a;
+	for (a = 1; a <= iNumberOfGroups; ++a)
 	{
-		sprintf_s(szTemp1, "Group%i", a);
-		for (unsigned int b = 1; b < 7; b++)
+		for (int b = 1; b <= MAX_GROUP_SIZE; ++b)
 		{
-			sprintf_s(szTemp2, "Member%i", b);
-			GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp3, MAX_STRING, INIFileName);
-			if (_stricmp(szTemp3, ""))
+			// Assuming the intent of this is to see if there's a group entry where all items have been erased, but the section and entries have not?
+			char szTemp[MAX_STRING];
+			GetPrivateProfileString("Group" + std::to_string(a), "Member" + std::to_string(b), "", szTemp, MAX_STRING, INIFileName);
+			std::string strTemp = szTemp;
+			trim(strTemp);
+			if (!strTemp.empty())
 			{
 				break;
 			}
@@ -137,22 +117,22 @@ unsigned int FindCreateGroupIndex(void)
 	return a;
 }
 
-unsigned int FindGroupNumber(CHAR* pszGroupEntry)
+int FindGroupNumber(CHAR* pszGroupEntry)
 {
 	char szTemp1[MAX_STRING];
 	char szTemp2[MAX_STRING];
 	char szTemp3[MAX_STRING];
 	char szTemp4[MAX_STRING];
 	iNumberOfGroups = GetPrivateProfileInt("Settings", "NumberOfGroups", 0, INIFileName);
-	unsigned int iGroupIndex = 0;
-	for (unsigned int a = 1; a < iNumberOfGroups + 1; a++)
+	int iGroupIndex = 0;
+	for (int a = 1; a < iNumberOfGroups + 1; a++)
 	{
 		sprintf_s(szTemp1, "Group%i", a);
 		if (GetPrivateProfileString(szTemp1, "Server", 0, szTemp2, MAX_STRING, INIFileName) != 0)
 		{
 			if (!_stricmp(szTemp2, EQADDR_SERVERNAME))
 			{
-				for (unsigned int b = 1; b < 7; b++)
+				for (int b = 1; b < 7; b++)
 				{
 					sprintf_s(szTemp2, "Member%i", b);
 					if (GetPrivateProfileString(szTemp1, szTemp2, 0, szTemp3, MAX_STRING, INIFileName) != 0)
@@ -195,102 +175,75 @@ unsigned int FindGroupNumber(CHAR* pszGroupEntry)
 	return iGroupIndex;
 }
 
-void WriteGroupEntry(CHAR* pszGroupEntry, unsigned int iGroupIndex)
+// TODO:  All of this find first slot code is duplicated, this should be moved to a function
+void WriteGroupEntry(const std::string& strGroupEntry, int iGroupIndex)
 {
-	char szTemp1[MAX_STRING];
-	char szTemp2[MAX_STRING];
-	char szTemp3[MAX_STRING];
-	sprintf_s(szTemp1, "Group%i", iGroupIndex);
-	for (unsigned int a = 1; a < 7; a++)
+	const std::string strSection = "Group" + std::to_string(iGroupIndex);
+	for (int a = 1; a <= MAX_GROUP_SIZE; ++a)
 	{
-		sprintf_s(szTemp2, "Member%i", a);
-		GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp3, MAX_STRING, INIFileName);
-		if (!_stricmp(szTemp3, ""))
+		const std::string strKey = "Member" + std::to_string(a);
+		char szTemp[MAX_STRING] = { 0 };
+		GetPrivateProfileString(strSection, strKey, "", szTemp, MAX_STRING, INIFileName);
+		std::string strValue = szTemp;
+		trim(strValue);
+		if (strValue.empty())
 		{
-			WritePrivateProfileString(szTemp1, szTemp2, pszGroupEntry, INIFileName);
-			WriteChatf("%s:: \ag%s\ax has been added to group %i.", PLUGIN_MSG, pszGroupEntry, iGroupNumber);
+			WritePrivateProfileString(strSection, strKey, strGroupEntry, INIFileName);
+			WriteChatf("%s:: \ag%s\ax has been added to group %i.", PLUGIN_MSG, strGroupEntry.c_str(), iGroupNumber);
 			return;
 		}
 	}
-	WriteChatf("%s:: Group %i doesn't have room for\ar%s\ax.", PLUGIN_MSG, iGroupNumber, pszGroupEntry);
-	return;
+	WriteChatf("%s:: Group %i doesn't have room for\ar%s\ax.", PLUGIN_MSG, iGroupNumber, strGroupEntry.c_str());
 }
 
-void RemoveGroupEntry(CHAR* pszGroupEntry, unsigned int iGroupIndex)
+void RemoveGroupEntry(const std::string& strGroupEntry, int iGroupIndex)
 {
-	char szTemp1[MAX_STRING];
-	char szTemp2[MAX_STRING];
-	char szTemp3[MAX_STRING];
-	sprintf_s(szTemp1, "Group%i", iGroupIndex);
-	for (unsigned int a = 1; a < 7; a++)
+	const std::string strSection = "Group" + std::to_string(iGroupIndex);
+	for (int a = 1; a <= MAX_GROUP_SIZE; a++)
 	{
-		sprintf_s(szTemp2, "Member%i", a);
-		GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp3, MAX_STRING, INIFileName);
-		if (!_stricmp(szTemp3, pszGroupEntry))
+		const std::string strKey = "Member" + std::to_string(a);
+		char szTemp3[MAX_STRING] = { 0 };
+		GetPrivateProfileString(strSection, strKey, "NoEntry", szTemp3, MAX_STRING, INIFileName);
+		if (ci_equals(szTemp3, strGroupEntry))
 		{
-			WritePrivateProfileString(szTemp1, szTemp2, "", INIFileName);
-			WriteChatf("%s:: \ar%s\ax has been removed from group %i.", PLUGIN_MSG, pszGroupEntry, iGroupNumber);
+			WritePrivateProfileString(strSection, strKey, "", INIFileName);
+			WriteChatf("%s:: \ar%s\ax has been removed from group %i.", PLUGIN_MSG, strGroupEntry.c_str(), iGroupNumber);
 			return;
 		}
 	}
-	return;
 }
 
-void RemoveGroupRole(CHAR* pszGrouprole, unsigned int iGroupIndex)
+void RemoveGroupRole(const std::string& strGroupRole, const int iGroupIndex)
 {
-	char szTemp1[MAX_STRING];
-	char szTemp2[MAX_STRING];
-	char szTemp3[MAX_STRING];
-	char szTemp4[MAX_STRING];
-	sprintf_s(szTemp1, "Group%i", iGroupIndex);
-	for (unsigned int a = 1; a < 7; a++)
+	const std::string strSection = "Group" + std::to_string(iGroupIndex);
+	for (int a = 1; a <= MAX_GROUP_SIZE; ++a)
 	{
-		sprintf_s(szTemp2, "Member%i", a);
-		if (GetPrivateProfileString(szTemp1, szTemp2, 0, szTemp3, MAX_STRING, INIFileName))
+		const std::string strKey = "Member" + std::to_string(a);
+		char szTemp[MAX_STRING];
+		if (GetPrivateProfileString(strSection, strKey, "", szTemp, MAX_STRING, INIFileName))
 		{
-			CHAR *pParsedToken = NULL;
-			CHAR *pParsedValue = strtok_s(szTemp3, "|", &pParsedToken);
-			if (_stricmp(pParsedValue, pszGrouprole))
+			char szValue[MAX_STRING] = { 0 };
+			char* pParsedToken = nullptr;
+			char* pParsedValue = strtok_s(szTemp, "|", &pParsedToken);
+			if (ci_equals(pParsedValue, strGroupRole))
 			{
-				sprintf_s(szTemp4, "%s", pParsedValue);
+				sprintf_s(szValue, "%s", pParsedValue);
 			}
-			pParsedValue = strtok_s(NULL, "|", &pParsedToken);
-			while (pParsedValue != NULL)
+			pParsedValue = strtok_s(nullptr, "|", &pParsedToken);
+			while (pParsedValue != nullptr)
 			{
-				if (_stricmp(pParsedValue, pszGrouprole))
+				if (ci_equals(pParsedValue, strGroupRole))
 				{
-					sprintf_s(szTemp4, "%s|%s", szTemp4, pParsedValue);
+					sprintf_s(szValue, "%s|%s", szValue, pParsedValue);
 				}
-				pParsedValue = strtok_s(NULL, "|", &pParsedToken);
+				pParsedValue = strtok_s(nullptr, "|", &pParsedToken);
 			}
-			WritePrivateProfileString(szTemp1, szTemp2, szTemp4, INIFileName);
+			WritePrivateProfileString(strSection, strKey, szValue, INIFileName);
 		}
 	}
-	return;
 }
 
-LONG SetBOOL(long Cur, PCHAR Val, PCHAR Sec, PCHAR Key, PCHAR INI)
-{
-	long result = 0;
-	if (!_strnicmp(Val, "false", 5) || !_strnicmp(Val, "off", 3) || !_strnicmp(Val, "0", 1))
-	{
-		result = 0;
-	}
-	else if (!_strnicmp(Val, "true", 4) || !_strnicmp(Val, "on", 2) || !_strnicmp(Val, "1", 1))
-	{
-		result = 1;
-	}
-	else
-	{
-		result = (!Cur) & 1;
-	}
-	if (Sec[0] && Key[0])
-	{
-		WritePrivateProfileString(Sec, Key, result ? "1" : "0", INI);
-	}
-	return result;
-}
-
+// TODO:  Fix duplicate code and all of these MAX_STRINGs
 void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 {
 	if (!InGameOK()) return;
@@ -313,8 +266,16 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	else if (!_stricmp(Parm1, "handlemerc"))
 	{
-		if (!_stricmp(Parm2, "on")) iHandleMerc = SetBOOL(iHandleMerc, Parm2, "Settings", "HandleMerc", INIFileName);
-		if (!_stricmp(Parm2, "off")) iHandleMerc = SetBOOL(iHandleMerc, Parm2, "Settings", "HandleMerc", INIFileName);
+		if (!_stricmp(Parm2, "on"))
+		{
+			iHandleMerc = 1;
+			WritePrivateProfileString("Settings", "HandleMerc", "1", INIFileName);
+		}
+		else if (!_stricmp(Parm2, "off"))
+		{
+			iHandleMerc = 0;
+			WritePrivateProfileString("Settings", "HandleMerc", "0", INIFileName);
+		}
 		WriteChatf("%s:: Summoning/suspending merc's is turned %s", PLUGIN_MSG, iHandleMerc ? "\agON\ax" : "\arOFF\ax");
 	}
 	else if (!_stricmp(Parm1, "create"))
@@ -453,11 +414,11 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				else if (psTarget && psTarget->Mercenary)
 				{
 					bool bInGroup = false;
-					for (unsigned int a = 0; a < 6; a++)
+					for (auto& groupMember : pChar->pGroupInfo->pMember)
 					{
-						if (pChar->pGroupInfo->pMember[a] && pChar->pGroupInfo->pMember[a]->Mercenary && pChar->pGroupInfo->pMember[a]->pSpawn->SpawnID == psTarget->SpawnID)
+						if (groupMember && groupMember->Mercenary && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
 						{
-							GetCXStr(pChar->pGroupInfo->pMember[a]->pOwner, szTemp4, MAX_STRING);  // szTemp4 = Owner name of the merc you are targeted
+							strcpy_s(szTemp4, groupMember->pOwner.c_str()); // szTemp4 = Owner name of the merc you are targeted
 							bInGroup = true;
 						}
 					}
@@ -475,7 +436,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				if (iGroupNumber > 0)
 				{
 					sprintf_s(szTemp1, "Group%i", iGroupNumber);
-					for (unsigned int a = 1; a < 7; a++)
+					for (int a = 1; a < 7; a++)
 					{
 						sprintf_s(szTemp2, "Member%i", a);
 						GetPrivateProfileString(szTemp1, szTemp2, "NoEntry", szTemp4, MAX_STRING, INIFileName);
@@ -655,11 +616,11 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				else if (psTarget && psTarget->Mercenary)
 				{
 					bool bInGroup = false;
-					for (unsigned int a = 0; a < 6; a++)
+					for (auto& groupMember : pChar->pGroupInfo->pMember)
 					{
-						if (pChar->pGroupInfo->pMember[a] && pChar->pGroupInfo->pMember[a]->Mercenary && pChar->pGroupInfo->pMember[a]->pSpawn->SpawnID == psTarget->SpawnID)
+						if (groupMember && groupMember->Mercenary && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
 						{
-							GetCXStr(pChar->pGroupInfo->pMember[a]->pOwner, szTemp4, MAX_STRING);  // szTemp4 = Owner name of the merc you are targeted
+							strcpy_s(szTemp4, groupMember->pOwner.c_str()); // szTemp4 = Owner name of the merc you are targeted
 							bInGroup = true;
 						}
 					}
@@ -773,10 +734,9 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 }
 
-DWORD __stdcall InviteEQBCorDanNetToons(PVOID pData)
+DWORD __stdcall InviteEQBCorDanNetToons(void* pData)
 {
 	CHAR szTemp1[MAX_STRING];
-	CHAR szTemp2[MAX_STRING];
 	sprintf_s(szTemp1, "%s", (PCHAR)pData);
 	Sleep(10000); // 10 seconds
 	sprintf_s(szCommand, "/invite %s", szTemp1);
@@ -791,15 +751,14 @@ DWORD __stdcall InviteEQBCorDanNetToons(PVOID pData)
 		sprintf_s(szCommand, "/dexecute %s /invite", szTemp1);
 	}
 	DoCommand(GetCharInfo()->pSpawn, szCommand);
-	Sleep(5000); // 5 seconds wait 5 seconds for them to join the group so we don't try and invite them again
-	if (vGroupNames.size())
+	Sleep(5000); // Wait 5 seconds for them to join the group so we don't try and invite them again
+	if (!vGroupNames.empty())
 	{
-		for (register unsigned int a = 0; a < vGroupNames.size(); a++)
+		for (auto it = vGroupNames.begin(); it != vGroupNames.end(); ++it)
 		{
-			strcpy_s(szTemp2, vGroupNames[a].c_str());
-			if (!_stricmp(szTemp2, "EQBC") || !_stricmp(szTemp2, "DANNET"))
+			if(ci_equals(*it, "EQBC") || ci_equals (*it, "DANNET"))
 			{
-				vGroupNames.erase(vGroupNames.begin() + a);
+				vGroupNames.erase(it--);
 				bInvitingPlayer = false;
 				return 0;
 			}
@@ -848,11 +807,10 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 	ClearSearchSpawn(&ssPCSearchCondition);
 	ssPCSearchCondition.SpawnType = PC;
 
-	sprintf_s(INIFileName, "%s\\%s.ini", gszINIPath, PLUGIN_NAME);
-	if (GetPrivateProfileInt("Settings", "Version", 0, INIFileName) != VERSION)
+	if (GetPrivateProfileInt("Settings", "Version", 0, INIFileName) != MQ2Version)
 	{
 		char Version[MAX_STRING] = { 0 };
-		sprintf_s(Version, "%1.2f", VERSION);
+		sprintf_s(Version, "%1.2f", MQ2Version);
 		WritePrivateProfileString("Settings", "Version", Version, INIFileName);
 	}
 	iHandleMerc = GetPrivateProfileInt("Settings", "HandleMerc", -1, INIFileName);
@@ -875,14 +833,14 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 	}
 
 	iGroupNumber = 0;
-	for (unsigned int a = 1; a < iNumberOfGroups + 1; a++)
+	for (int a = 1; a < iNumberOfGroups + 1; a++)
 	{
 		sprintf_s(szTemp1, "Group%i", a);
 		if (GetPrivateProfileString(szTemp1, "Server", 0, szTemp2, MAX_STRING, INIFileName) != 0)
 		{
 			if (!_stricmp(szTemp2, EQADDR_SERVERNAME))
 			{
-				for (unsigned int b = 1; b < 7; b++)
+				for (int b = 1; b < 7; b++)
 				{
 					sprintf_s(szTemp2, "Member%i", b);
 					if (GetPrivateProfileString(szTemp1, szTemp2, 0, szTemp3, MAX_STRING, INIFileName) != 0)
@@ -910,7 +868,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 	if (iGroupNumber > 0)
 	{
 		sprintf_s(szTemp1, "Group%i", iGroupNumber);
-		for (unsigned int b = 1; b < 7; b++)
+		for (int b = 1; b < 7; b++)
 		{
 			sprintf_s(szTemp2, "Member%i", b);
 			if (GetPrivateProfileString(szTemp1, szTemp2, 0, szTemp3, MAX_STRING, INIFileName) != 0)
@@ -989,15 +947,14 @@ bool CheckConfirmationWindow(void)
 {
 	if (CXWnd *pWnd = (CXWnd *)FindMQ2Window("ConfirmationDialogBox"))
 	{
-		if (((PCSIDLWND)(pWnd))->IsVisible())
+		if (pWnd->IsVisible())
 		{
 			if (CStmlWnd*Child = (CStmlWnd*)pWnd->GetChildItem("CD_TextOutput"))
 			{
-				char ConfirmationText[MAX_STRING];
-				GetCXStr(Child->STMLText, ConfirmationText, sizeof(ConfirmationText));
-				if (strstr(ConfirmationText, "If you accept"))
+				const std::string ConfirmationText = Child->STMLText.c_str();
+				if (ci_find_substr(ConfirmationText, "If you accept") != -1)
 				{
-					if (strstr(ConfirmationText, "you and your group members will lose"))
+					if (ci_find_substr(ConfirmationText, "you and your group members will lose") != -1)
 					{
 						if (CXWnd *pWndButton = pWnd->GetChildItem("CD_Yes_Button"))
 						{
@@ -1074,7 +1031,7 @@ bool SetupGroup(PCHARINFO pChar)
 {
 	if (bLeader)
 	{
-		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[0])
+		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[0])
 		{
 			if (pChar->pGroupInfo->pLeader && pChar->pGroupInfo->pLeader->pSpawn && pChar->pGroupInfo->pLeader->pSpawn->SpawnID)
 			{
@@ -1092,22 +1049,22 @@ bool SetupGroup(PCHARINFO pChar)
 		}
 		char szTemp1[MAX_STRING];
 		char szTemp2[MAX_STRING];
-		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[0])
+		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[0])
 		{
 			if (pChar->pGroupInfo->pLeader->pSpawn->SpawnID == pChar->pSpawn->SpawnID)
 			{
-				for (LONG k = 0; k < 6; k++)
+				for (auto& groupMember : pChar->pGroupInfo->pMember)
 				{
-					if (pChar->pGroupInfo->pMember[k] && pChar->pGroupInfo->pMember[k]->Mercenary)
+					if (groupMember && groupMember->Mercenary)
 					{
-						GetCXStr(pChar->pGroupInfo->pMember[k]->pOwner, szTemp2, MAX_STRING);
+						strcpy_s(szTemp2, groupMember->pOwner.c_str());
 						sprintf_s(szTemp1, "Merc|%s", szTemp2);
-						GetCXStr(pChar->pGroupInfo->pMember[k]->pName, szTemp2, MAX_STRING);
+						strcpy_s(szTemp2, groupMember->Name.c_str());
 					}
-					else if (pChar->pGroupInfo->pMember[k])
+					else if (groupMember)
 					{
-						GetCXStr(pChar->pGroupInfo->pMember[k]->pName, szTemp1, MAX_STRING);
-						GetCXStr(pChar->pGroupInfo->pMember[k]->pName, szTemp2, MAX_STRING);
+						strcpy_s(szTemp1, groupMember->Name.c_str());
+						strcpy_s(szTemp2, groupMember->Name.c_str());
 					}
 					if (!_stricmp(szMainTank, szTemp1))
 					{
@@ -1147,34 +1104,35 @@ bool SetupGroup(PCHARINFO pChar)
 				}
 			}
 		}
-		if (vInviteNames.size())
+		if (!vInviteNames.empty())
 		{
 			int	iGroupMembers = 0;
-			for (register unsigned int a = 0; a < 6; a++)
+			for (int a = 0; a < MAX_GROUP_SIZE; ++a)
 			{
-				if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[a])
+				if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[a])
 				{
 					iGroupMembers++;
 				}
 			}
-			if (iGroupMembers < 6)
+			
+			if (iGroupMembers < MAX_GROUP_SIZE)
 			{
-				for (register unsigned int a = 0; a < vInviteNames.size(); a++)
+				for (auto it = vInviteNames.begin(); it != vInviteNames.end(); ++it)
 				{
-					strcpy_s(szTemp1, vInviteNames[a].c_str());
-					if (!_stricmp(szTemp1, ((PCHARINFO)pCharData)->Name))
+					strcpy_s(szTemp1, (*it).c_str());
+					if (ci_equals(szTemp1, ((PCHARINFO)pCharData)->Name))
 					{
-						vInviteNames.erase(vInviteNames.begin() + a);
+						vInviteNames.erase(it--);
 						return true;
 					}
-					else if (!_stricmp(szTemp1, "EQBC") || !_stricmp(szTemp1, "DANNET"))
+					else if (ci_equals(szTemp1, "EQBC") || ci_equals(szTemp1, "DANNET"))
 					{
 						if (!bInvitingPlayer)
 						{
-							unsigned int iSpawnCount = CountMatchingSpawns(&ssPCSearchCondition, GetCharInfo()->pSpawn, false);
+							const int iSpawnCount = CountMatchingSpawns(&ssPCSearchCondition, GetCharInfo()->pSpawn, false);
 							if (iSpawnCount)
 							{
-								for (unsigned int s = 1; s <= iSpawnCount; s++)
+								for (int s = 1; s <= iSpawnCount; s++)
 								{
 									if (PSPAWNINFO pNewSpawn = NthNearestSpawn(&ssPCSearchCondition, s, GetCharInfo()->pSpawn, false))
 									{
@@ -1182,9 +1140,9 @@ bool SetupGroup(PCHARINFO pChar)
 										if (CheckEQBC(szTemp2) || CheckDanNet(szTemp2))
 										{
 											bool bInGroup = false;
-											for (register unsigned int b = 1; b < 6; b++)
+											for (int b = 1; b < MAX_GROUP_SIZE; ++b)
 											{
-												if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[b] && pChar->pGroupInfo->pMember[b]->pSpawn && pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
+												if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[b] && pChar->pGroupInfo->pMember[b]->pSpawn && pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
 												{
 													if (pNewSpawn->SpawnID == pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
 													{
@@ -1196,8 +1154,8 @@ bool SetupGroup(PCHARINFO pChar)
 											{
 												bInvitingPlayer = true;
 												DWORD nThreadID = 0;
-												CreateThread(NULL, NULL, InviteEQBCorDanNetToons, _strdup(szTemp2), 0, &nThreadID);
-												vInviteNames.erase(vInviteNames.begin() + a);
+												CreateThread(nullptr, 0, InviteEQBCorDanNetToons, _strdup(szTemp2), 0, &nThreadID);
+												vInviteNames.erase(it--);
 												return true;
 											}
 										}
@@ -1209,8 +1167,8 @@ bool SetupGroup(PCHARINFO pChar)
 					else if (PSPAWNINFO pNewSpawn = (PSPAWNINFO)GetSpawnByName(szTemp1))
 					{
 						DWORD nThreadID = 0;
-						CreateThread(NULL, NULL, InviteToons, _strdup(szTemp1), 0, &nThreadID);
-						vInviteNames.erase(vInviteNames.begin() + a);
+						CreateThread(nullptr, 0, InviteToons, _strdup(szTemp1), 0, &nThreadID);
+						vInviteNames.erase(it--);
 						return true;
 					}
 				}
@@ -1223,44 +1181,42 @@ bool SetupGroup(PCHARINFO pChar)
 // Lets check when the group is complete so this plugin can run the start command and then stop this plugin from doing stuff
 void CheckGroup(PCHARINFO pChar)
 {
-	char szTemp1[MAX_STRING];
-	char szTemp2[MAX_STRING];
-	if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[0])
+	if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[0])
 	{
 		int	iGroupMembers = 0;
-		for (register unsigned int a = 0; a < 6; a++)
+		for (int a = 0; a < MAX_GROUP_SIZE; a++)
 		{
-			if (pChar->pGroupInfo && pChar->pGroupInfo->pMember && pChar->pGroupInfo->pMember[a])
+			if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[a])
 			{
 				iGroupMembers++;
 			}
 		}
-		if (vGroupNames.size() && iGroupMembers < 6)
+		if (!vGroupNames.empty() && iGroupMembers < MAX_GROUP_SIZE)
 		{
-			for (register unsigned int a = 0; a < vGroupNames.size(); a++)
+			for (auto it = vGroupNames.begin(); it != vGroupNames.end(); ++it)
 			{
-				strcpy_s(szTemp1, vGroupNames[a].c_str());
-				CHAR *pParsedToken = NULL;
-				CHAR *pParsedValue = strtok_s(szTemp1, "|", &pParsedToken);
+				char szTemp[MAX_STRING];
+				strcpy_s(szTemp, (*it).c_str());
+				char* pParsedToken = nullptr;
+				char* pParsedValue = strtok_s(szTemp, "|", &pParsedToken);
 				if (!_stricmp(pParsedValue, "Merc"))
 				{
-					pParsedValue = strtok_s(NULL, "|", &pParsedToken);
-					if (pParsedValue == NULL)
+					pParsedValue = strtok_s(nullptr, "|", &pParsedToken);
+					if (pParsedValue == nullptr)
 					{
 						WriteChatf("%s:: Whoa friend, your group has a merc without an owner.  Please edit MQ2AutoGroup.ini to give it an owner.", PLUGIN_MSG);
-						vGroupNames.erase(vGroupNames.begin() + a);
+						vGroupNames.erase(it--);
 					}
 					else
 					{
-						for (LONG k = 0; k < 6; k++)
+						for (auto& groupMember : pChar->pGroupInfo->pMember)
 						{
-							if (pChar->pGroupInfo->pMember[k] && pChar->pGroupInfo->pMember[k]->Mercenary)
+							if (groupMember && groupMember->Mercenary)
 							{
-								GetCXStr(pChar->pGroupInfo->pMember[k]->pOwner, szTemp2, MAX_STRING);
-								if (!_stricmp(pParsedValue, szTemp2))
+								if (ci_equals(pParsedValue, groupMember->pOwner))
 								{
-									WriteChatf("%s:: The mercenary owned by \ag%s\ax is in the group!", PLUGIN_MSG, szTemp2);
-									vGroupNames.erase(vGroupNames.begin() + a);
+									WriteChatf("%s:: The mercenary owned by \ag%s\ax is in the group!", PLUGIN_MSG, groupMember->pOwner.c_str());
+									vGroupNames.erase(it--);
 								}
 							}
 						}
@@ -1268,16 +1224,12 @@ void CheckGroup(PCHARINFO pChar)
 				}
 				else
 				{
-					for (LONG k = 0; k < 6; k++)
+					for (auto& groupMember : pChar->pGroupInfo->pMember)
 					{
-						if (pChar->pGroupInfo->pMember[k] && pChar->pGroupInfo->pMember[k]->pName)
+						if (groupMember && ci_equals(szTemp, groupMember->Name))
 						{
-							GetCXStr(pChar->pGroupInfo->pMember[k]->pName, szTemp2, MAX_STRING);
-							if (!_stricmp(szTemp1, szTemp2))
-							{
-								WriteChatf("%s:: \ag%s\ax is in the group!", PLUGIN_MSG, szTemp2);
-								vGroupNames.erase(vGroupNames.begin() + a);
-							}
+							WriteChatf("%s:: \ag%s\ax is in the group!", PLUGIN_MSG, groupMember->Name.c_str());
+							vGroupNames.erase(it--);
 						}
 					}
 				}
@@ -1326,14 +1278,14 @@ PLUGIN_API VOID OnPulse(VOID)
 PLUGIN_API DWORD OnIncomingChat(PCHAR Line, DWORD Color)
 {
 	if (!InGameOK()) return 0;
-	CHAR szName[MAX_STRING];
+	
 	if (strstr(Line, "invites you to join a group.")) 
 	{
+		char szName[MAX_STRING] = { 0 };
 		GetArg(szName, Line, 1);
-		for (unsigned int a = 0; a < vGroupNames.size(); a++) 
+		for (auto& vRef : vGroupNames)
 		{
-			string& vRef = vGroupNames[a];
-			if (!_strcmpi(szName, vRef.c_str())) 
+			if (ci_equals(szName, vRef))
 			{
 				DoCommand(GetCharInfo()->pSpawn, "/timed 50 /invite");
 				WriteChatf("%s:: Joining group with \ag%s\ax", PLUGIN_MSG, szName);
