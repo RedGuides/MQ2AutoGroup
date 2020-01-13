@@ -416,7 +416,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					bool bInGroup = false;
 					for (auto& groupMember : pChar->pGroupInfo->pMember)
 					{
-						if (groupMember && groupMember->Mercenary && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
+						if (groupMember && groupMember->Type == EQP_NPC && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
 						{
 							strcpy_s(szTemp4, groupMember->pOwner.c_str()); // szTemp4 = Owner name of the merc you are targeted
 							bInGroup = true;
@@ -618,7 +618,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 					bool bInGroup = false;
 					for (auto& groupMember : pChar->pGroupInfo->pMember)
 					{
-						if (groupMember && groupMember->Mercenary && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
+						if (groupMember && groupMember->Type == EQP_NPC && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
 						{
 							strcpy_s(szTemp4, groupMember->pOwner.c_str()); // szTemp4 = Owner name of the merc you are targeted
 							bInGroup = true;
@@ -1055,7 +1055,7 @@ bool SetupGroup(PCHARINFO pChar)
 			{
 				for (auto& groupMember : pChar->pGroupInfo->pMember)
 				{
-					if (groupMember && groupMember->Mercenary)
+					if (groupMember && groupMember->Type == EQP_NPC)
 					{
 						strcpy_s(szTemp2, groupMember->pOwner.c_str());
 						sprintf_s(szTemp1, "Merc|%s", szTemp2);
@@ -1211,7 +1211,7 @@ void CheckGroup(PCHARINFO pChar)
 					{
 						for (auto& groupMember : pChar->pGroupInfo->pMember)
 						{
-							if (groupMember && groupMember->Mercenary)
+							if (groupMember && groupMember->Type == EQP_NPC)
 							{
 								if (ci_equals(pParsedValue, groupMember->pOwner))
 								{
