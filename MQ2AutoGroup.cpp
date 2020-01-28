@@ -46,17 +46,9 @@ inline bool InGameOK()
 	return(GetGameState() == GAMESTATE_INGAME && GetCharInfo() && GetCharInfo()->pSpawn && GetPcProfile());
 }
 
-// This is the region for connecting to other plugins
-MQPlugin* Plugin(std::string_view PluginName)
-{
-	auto pLook = pPlugins;
-	while (pLook && ci_equals(PluginName, pLook->szFilename)) pLook = pLook->pNext;
-	return pLook;
-}
-
 bool CheckEQBC(char* szName)
 {
-	if (MQPlugin* pLook = Plugin("mq2eqbc"))
+	if (MQPlugin* pLook = GetPlugin("mq2eqbc"))
 	{
 		if (unsigned short(*fisConnected)() = (unsigned short(*)())GetProcAddress(pLook->hModule, "isConnected"))
 		{
@@ -77,7 +69,7 @@ bool CheckEQBC(char* szName)
 
 bool CheckDanNet(char* szName)
 {
-	if (MQPlugin* pLook = Plugin("mq2dannet"))
+	if (MQPlugin* pLook = GetPlugin("mq2dannet"))
 	{
 		if (bool(*f_peer_connected)(const std::string& name) = (bool(*)(const std::string& name))GetProcAddress(pLook->hModule, "peer_connected"))
 		{
