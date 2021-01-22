@@ -406,11 +406,11 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				else if (psTarget && psTarget->Mercenary)
 				{
 					bool bInGroup = false;
-					for (auto& groupMember : pChar->pGroupInfo->pMember)
+					for (auto& groupMember : *pChar->pGroupInfo)
 					{
 						if (groupMember && groupMember->Type == EQP_NPC && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
 						{
-							strcpy_s(szTemp4, groupMember->pOwner.c_str()); // szTemp4 = Owner name of the merc you are targeted
+							strcpy_s(szTemp4, groupMember->GetOwnerName()); // szTemp4 = Owner name of the merc you are targeted
 							bInGroup = true;
 						}
 					}
@@ -608,11 +608,11 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 				else if (psTarget && psTarget->Mercenary)
 				{
 					bool bInGroup = false;
-					for (auto& groupMember : pChar->pGroupInfo->pMember)
+					for (auto& groupMember : *pChar->pGroupInfo)
 					{
 						if (groupMember && groupMember->Type == EQP_NPC && groupMember->pSpawn->SpawnID == psTarget->SpawnID)
 						{
-							strcpy_s(szTemp4, groupMember->pOwner.c_str()); // szTemp4 = Owner name of the merc you are targeted
+							strcpy_s(szTemp4, groupMember->GetOwnerName()); // szTemp4 = Owner name of the merc you are targeted
 							bInGroup = true;
 						}
 					}
@@ -1023,7 +1023,10 @@ bool SetupGroup(PCHARINFO pChar)
 {
 	if (bLeader)
 	{
-		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[0])
+		char szTemp1[MAX_STRING];
+		char szTemp2[MAX_STRING];
+
+		if (pChar->pGroupInfo && pChar->pGroupInfo->GetGroupMember(0))
 		{
 			if (pChar->pGroupInfo->pLeader && pChar->pGroupInfo->pLeader->pSpawn && pChar->pGroupInfo->pLeader->pSpawn->SpawnID)
 			{
@@ -1038,26 +1041,26 @@ bool SetupGroup(PCHARINFO pChar)
 				bLeader = false; // Hey you aren't the leader, I am turning off leader stuff
 				return true;
 			}
-		}
-		char szTemp1[MAX_STRING];
-		char szTemp2[MAX_STRING];
-		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[0])
-		{
+
 			if (pChar->pGroupInfo->pLeader->pSpawn->SpawnID == pChar->pSpawn->SpawnID)
 			{
-				for (auto& groupMember : pChar->pGroupInfo->pMember)
+				for (auto& groupMember : *pChar->pGroupInfo)
 				{
-					if (groupMember && groupMember->Type == EQP_NPC)
+					if (!groupMember)
+						continue;
+
+					if (groupMember->Type == EQP_NPC)
 					{
-						strcpy_s(szTemp2, groupMember->pOwner.c_str());
+						strcpy_s(szTemp2, groupMember->GetOwnerName());
 						sprintf_s(szTemp1, "Merc|%s", szTemp2);
-						strcpy_s(szTemp2, groupMember->Name.c_str());
+						strcpy_s(szTemp2, groupMember->GetName());
 					}
-					else if (groupMember)
+					else
 					{
-						strcpy_s(szTemp1, groupMember->Name.c_str());
-						strcpy_s(szTemp2, groupMember->Name.c_str());
+						strcpy_s(szTemp1, groupMember->GetName());
+						strcpy_s(szTemp2, groupMember->GetName());
 					}
+
 					if (!_stricmp(szMainTank, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 1", szTemp2);
@@ -1101,7 +1104,7 @@ bool SetupGroup(PCHARINFO pChar)
 			int	iGroupMembers = 0;
 			for (int a = 0; a < MAX_GROUP_SIZE; ++a)
 			{
-				if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[a])
+				if (pChar->pGroupInfo && pChar->pGroupInfo->GetGroupMember(a))
 				{
 					iGroupMembers++;
 				}
@@ -1134,9 +1137,9 @@ bool SetupGroup(PCHARINFO pChar)
 											bool bInGroup = false;
 											for (int b = 1; b < MAX_GROUP_SIZE; ++b)
 											{
-												if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[b] && pChar->pGroupInfo->pMember[b]->pSpawn && pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
+												if (pChar->pGroupInfo && pChar->pGroupInfo->GetGroupMember(b) && pChar->pGroupInfo->GetGroupMember(b)->pSpawn && pChar->pGroupInfo->GetGroupMember(b)->pSpawn->SpawnID)
 												{
-													if (pNewSpawn->SpawnID == pChar->pGroupInfo->pMember[b]->pSpawn->SpawnID)
+													if (pNewSpawn->SpawnID == pChar->pGroupInfo->GetGroupMember(b)->pSpawn->SpawnID)
 													{
 														bInGroup = true;
 													}
@@ -1173,12 +1176,12 @@ bool SetupGroup(PCHARINFO pChar)
 // Lets check when the group is complete so this plugin can run the start command and then stop this plugin from doing stuff
 void CheckGroup(PCHARINFO pChar)
 {
-	if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[0])
+	if (pChar->pGroupInfo && pChar->pGroupInfo->GetGroupMember(0))
 	{
 		int	iGroupMembers = 0;
 		for (int a = 0; a < MAX_GROUP_SIZE; a++)
 		{
-			if (pChar->pGroupInfo && pChar->pGroupInfo->pMember[a])
+			if (pChar->pGroupInfo && pChar->pGroupInfo->GetGroupMember(a))
 			{
 				iGroupMembers++;
 			}
@@ -1201,13 +1204,13 @@ void CheckGroup(PCHARINFO pChar)
 					}
 					else
 					{
-						for (auto& groupMember : pChar->pGroupInfo->pMember)
+						for (auto& groupMember : *pChar->pGroupInfo)
 						{
 							if (groupMember && groupMember->Type == EQP_NPC)
 							{
-								if (ci_equals(pParsedValue, groupMember->pOwner))
+								if (ci_equals(pParsedValue, groupMember->GetOwnerName()))
 								{
-									WriteChatf("%s:: The mercenary owned by \ag%s\ax is in the group!", PLUGIN_MSG, groupMember->pOwner.c_str());
+									WriteChatf("%s:: The mercenary owned by \ag%s\ax is in the group!", PLUGIN_MSG, groupMember->GetOwnerName());
 									vGroupNames.erase(it--);
 								}
 							}
@@ -1216,7 +1219,7 @@ void CheckGroup(PCHARINFO pChar)
 				}
 				else
 				{
-					for (auto& groupMember : pChar->pGroupInfo->pMember)
+					for (auto& groupMember : *pChar->pGroupInfo)
 					{
 						if (groupMember && ci_equals(szTemp, groupMember->Name))
 						{
