@@ -22,7 +22,7 @@ bool bUseMerc = false;
 bool bSummonMerc = true;
 bool bSummonedMerc = false;
 bool bSuspendMerc = false;
-bool bUseStartCommand = false; 
+bool bUseStartCommand = false;
 bool bGroupComplete = false;
 bool bInvitingPlayer = false; // Used to limit the number of threads for inviting eqbc/dannet spots in the group to 1 at a time
 bool bAutoGroupSetup = false;
@@ -34,7 +34,7 @@ char szMainAssist[MAX_STRING] = "NoEntry";
 char szPuller[MAX_STRING] = "NoEntry";
 char szMarkNPC[MAX_STRING] = "NoEntry";
 char szMasterLooter[MAX_STRING] = "NoEntry";
-char szStartCommand[MAX_STRING]; 
+char szStartCommand[MAX_STRING];
 char szCommand[MAX_STRING];
 std::vector<std::string> vGroupNames;
 std::vector<std::string> vInviteNames;
@@ -888,7 +888,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 				{
 					vGroupNames.push_back(szTemp4);
 				}
-				else 
+				else
 				{
 					vGroupNames.push_back(szTemp4);
 					vInviteNames.push_back(szTemp4);
@@ -1109,7 +1109,7 @@ bool SetupGroup(PCHARINFO pChar)
 					iGroupMembers++;
 				}
 			}
-			
+
 			if (iGroupMembers < MAX_GROUP_SIZE)
 			{
 				for (auto it = vInviteNames.begin(); it != vInviteNames.end(); ++it)
@@ -1273,8 +1273,8 @@ PLUGIN_API VOID OnPulse(VOID)
 PLUGIN_API DWORD OnIncomingChat(PCHAR Line, DWORD Color)
 {
 	if (!InGameOK()) return 0;
-	
-	if (strstr(Line, "invites you to join a group.")) 
+
+	if (strstr(Line, "invites you to join a group."))
 	{
 		char szName[MAX_STRING] = { 0 };
 		GetArg(szName, Line, 1);
