@@ -994,7 +994,7 @@ bool CheckConfirmationWindow(void)
 			if (CStmlWnd*Child = (CStmlWnd*)pWnd->GetChildItem("CD_TextOutput"))
 			{
 				char ConfirmationText[MAX_STRING];
-				GetCXStr(Child->STMLText.Ptr, ConfirmationText, sizeof(ConfirmationText));
+				GetCXStr(Child->STMLText, ConfirmationText, sizeof(ConfirmationText));
 				if (strstr(ConfirmationText, "If you accept"))
 				{
 					if (strstr(ConfirmationText, "you and your group members will lose"))
