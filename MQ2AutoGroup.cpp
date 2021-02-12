@@ -961,7 +961,7 @@ bool CheckConfirmationWindow(void)
 	return false;
 }
 
-// If you want the plugin to suspend/summon your merc this is called to setup your group 
+// If you want the plugin to suspend/summon your merc this is called to setup your group
 bool HandleMercs(PCHARINFO pChar)
 {
 	if (iHandleMerc)
@@ -1099,6 +1099,8 @@ bool SetupGroup(PCHARINFO pChar)
 				}
 			}
 		}
+		vInviteNames.erase(std::remove_if(vInviteNames.begin(), vInviteNames.end(),
+			[](const std::string& o) { return ci_equals(o, pLocalPlayer->Name); }), vInviteNames.end());
 		if (!vInviteNames.empty())
 		{
 			int	iGroupMembers = 0;
@@ -1115,12 +1117,7 @@ bool SetupGroup(PCHARINFO pChar)
 				for (auto it = vInviteNames.begin(); it != vInviteNames.end(); ++it)
 				{
 					strcpy_s(szTemp1, (*it).c_str());
-					if (ci_equals(szTemp1, ((PCHARINFO)pCharData)->Name))
-					{
-						vInviteNames.erase(it--);
-						return true;
-					}
-					else if (ci_equals(szTemp1, "EQBC") || ci_equals(szTemp1, "DANNET"))
+					if (ci_equals(szTemp1, "EQBC") || ci_equals(szTemp1, "DANNET"))
 					{
 						if (!bInvitingPlayer)
 						{
@@ -1150,7 +1147,7 @@ bool SetupGroup(PCHARINFO pChar)
 												bInvitingPlayer = true;
 												DWORD nThreadID = 0;
 												CreateThread(nullptr, 0, InviteEQBCorDanNetToons, _strdup(szTemp2), 0, &nThreadID);
-												vInviteNames.erase(it--);
+												vInviteNames.erase(it);
 												return true;
 											}
 										}
@@ -1163,7 +1160,7 @@ bool SetupGroup(PCHARINFO pChar)
 					{
 						DWORD nThreadID = 0;
 						CreateThread(nullptr, 0, InviteToons, _strdup(szTemp1), 0, &nThreadID);
-						vInviteNames.erase(it--);
+						vInviteNames.erase(it);
 						return true;
 					}
 				}
@@ -1188,19 +1185,21 @@ void CheckGroup(PCHARINFO pChar)
 		}
 		if (!vGroupNames.empty() && iGroupMembers < MAX_GROUP_SIZE)
 		{
-			for (auto it = vGroupNames.begin(); it != vGroupNames.end(); ++it)
+			for (auto it = vGroupNames.begin(); it != vGroupNames.end(); /*++it*/)
 			{
 				char szTemp[MAX_STRING];
 				strcpy_s(szTemp, (*it).c_str());
 				char* pParsedToken = nullptr;
 				char* pParsedValue = strtok_s(szTemp, "|", &pParsedToken);
+				bool increment = true;
 				if (!_stricmp(pParsedValue, "Merc"))
 				{
 					pParsedValue = strtok_s(nullptr, "|", &pParsedToken);
 					if (pParsedValue == nullptr)
 					{
 						WriteChatf("%s:: Whoa friend, your group has a merc without an owner.  Please edit MQ2AutoGroup.ini to give it an owner.", PLUGIN_MSG);
-						vGroupNames.erase(it--);
+						increment = false;
+						it = vGroupNames.erase(it);
 					}
 					else
 					{
@@ -1211,7 +1210,8 @@ void CheckGroup(PCHARINFO pChar)
 								if (ci_equals(pParsedValue, groupMember->GetOwnerName()))
 								{
 									WriteChatf("%s:: The mercenary owned by \ag%s\ax is in the group!", PLUGIN_MSG, groupMember->GetOwnerName());
-									vGroupNames.erase(it--);
+									increment = false;
+									it = vGroupNames.erase(it);
 								}
 							}
 						}
@@ -1224,9 +1224,14 @@ void CheckGroup(PCHARINFO pChar)
 						if (groupMember && ci_equals(szTemp, groupMember->Name))
 						{
 							WriteChatf("%s:: \ag%s\ax is in the group!", PLUGIN_MSG, groupMember->Name.c_str());
-							vGroupNames.erase(it--);
+							increment = false;
+							it = vGroupNames.erase(it);
 						}
 					}
+				}
+				if (increment)
+				{
+					++it;
 				}
 			}
 		}
