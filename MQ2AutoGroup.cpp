@@ -74,7 +74,7 @@ bool CheckDanNet(char* szName)
 		if (bool(*f_peer_connected)(const std::string& name) = (bool(*)(const std::string& name))GetProcAddress(pLook->hModule, "peer_connected"))
 		{
 			char szTemp[MAX_STRING];
-			sprintf_s(szTemp, "%s_%s", EQADDR_SERVERNAME, szName);
+			sprintf_s(szTemp, "%s_%s", GetServerShortName(), szName);
 			if (f_peer_connected(szTemp))
 			{
 				return true;
@@ -122,7 +122,7 @@ int FindGroupNumber(CHAR* pszGroupEntry)
 		sprintf_s(szTemp1, "Group%i", a);
 		if (GetPrivateProfileString(szTemp1, "Server", 0, szTemp2, MAX_STRING, INIFileName) != 0)
 		{
-			if (!_stricmp(szTemp2, EQADDR_SERVERNAME))
+			if (!_stricmp(szTemp2, GetServerShortName()))
 			{
 				for (int b = 1; b < 7; b++)
 				{
@@ -277,8 +277,8 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 		{
 			iGroupNumber = FindCreateGroupIndex();
 			sprintf_s(szTemp1, "Group%i", iGroupNumber);
-			WritePrivateProfileString(szTemp1, "Server", EQADDR_SERVERNAME, INIFileName);
-			WritePrivateProfileString(szTemp1, "Member1", ((PCHARINFO)pCharData)->Name, INIFileName);
+			WritePrivateProfileString(szTemp1, "Server", GetServerShortName(), INIFileName);
+			WritePrivateProfileString(szTemp1, "Member1", pLocalPC->Name, INIFileName);
 			WritePrivateProfileString(szTemp1, "Member2", "", INIFileName);
 			WritePrivateProfileString(szTemp1, "Member3", "", INIFileName);
 			WritePrivateProfileString(szTemp1, "Member4", "", INIFileName);
@@ -318,13 +318,13 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	else if (!_stricmp(Parm1, "startcommand"))
 	{
-		sprintf_s(szTemp1, "%s_%s", EQADDR_SERVERNAME, ((PCHARINFO)pCharData)->Name);
+		sprintf_s(szTemp1, "%s_%s", GetServerShortName(), pLocalPC->Name);
 		WritePrivateProfileString("StartCommand", szTemp1, Parm2, INIFileName);
 		WriteChatf("%s:: Setting the start command to: \ag%s\ax", PLUGIN_MSG, Parm2);
 	}
 	else if (!_stricmp(Parm1, "add"))
 	{
-		iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+		iGroupNumber = FindGroupNumber(pLocalPC->Name);
 		if (iGroupNumber == 0)
 		{
 			WriteChatf("%s:: \arYou are not in a group, you need to create a group or be added to a group before you can add someone to it.\ax", PLUGIN_MSG);
@@ -676,10 +676,10 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	else if (!_stricmp(Parm1, "status"))
 	{
-		sprintf_s(szTemp1, "%s_%s", EQADDR_SERVERNAME, ((PCHARINFO)pCharData)->Name);
+		sprintf_s(szTemp1, "%s_%s", GetServerShortName(), pLocalPC->Name);
 		GetPrivateProfileString("StartCommand", szTemp1, "NoEntry", szTemp2, MAX_STRING, INIFileName);
 		WriteChatf("%s:: My command to run once the group is formed is: \ag%s\ax", PLUGIN_MSG,szTemp2);
-		iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+		iGroupNumber = FindGroupNumber(pLocalPC->Name);
 		if (iGroupNumber > 0)
 		{
 			sprintf_s(szTemp1, "Group%i", iGroupNumber);
@@ -817,7 +817,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 		WritePrivateProfileString("Settings", "NumberOfGroups", "0", INIFileName);
 	}
 
-	sprintf_s(szTemp1, "%s_%s", EQADDR_SERVERNAME, ((PCHARINFO)pCharData)->Name);
+	sprintf_s(szTemp1, "%s_%s", GetServerShortName(), pLocalPC->Name);
 	if (GetPrivateProfileString("StartCommand", szTemp1, 0, szStartCommand, MAX_STRING, INIFileName) != 0)
 	{
 		bUseStartCommand = true;
@@ -830,7 +830,7 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 		sprintf_s(szTemp1, "Group%i", a);
 		if (GetPrivateProfileString(szTemp1, "Server", 0, szTemp2, MAX_STRING, INIFileName) != 0)
 		{
-			if (!_stricmp(szTemp2, EQADDR_SERVERNAME))
+			if (!_stricmp(szTemp2, GetServerShortName()))
 			{
 				for (int b = 1; b < 7; b++)
 				{
