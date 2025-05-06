@@ -271,8 +271,8 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 		WriteChatf("%s:: Summoning/suspending merc's is turned %s", PLUGIN_MSG, iHandleMerc ? "\agON\ax" : "\arOFF\ax");
 	}
 	else if (!_stricmp(Parm1, "create"))
-	{
-		iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+	{	
+		iGroupNumber = FindGroupNumber(pLocalPC->Name);
 		if (iGroupNumber == 0)
 		{
 			iGroupNumber = FindCreateGroupIndex();
@@ -298,7 +298,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	}
 	else if (!_stricmp(Parm1, "delete"))
 	{
-		iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+		iGroupNumber = FindGroupNumber(pLocalPC->Name);
 		if (iGroupNumber > 0)
 		{
 			sprintf_s(szTemp1, "Group%i", iGroupNumber);
@@ -488,7 +488,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 	{
 		if (!_stricmp(Parm2, "eqbc"))
 		{
-			iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+			iGroupNumber = FindGroupNumber(pLocalPC->Name);
 			if (iGroupNumber > 0)
 			{
 				RemoveGroupEntry("EQBC", iGroupNumber);
@@ -496,7 +496,7 @@ void AutoGroupCommand(PSPAWNINFO pCHAR, PCHAR zLine)
 		}
 		else if (!_stricmp(Parm2, "dannet"))
 		{
-			iGroupNumber = FindGroupNumber(((PCHARINFO)pCharData)->Name);
+			iGroupNumber = FindGroupNumber(pLocalPC->Name);
 			if (iGroupNumber > 0)
 			{
 				RemoveGroupEntry("DANNET", iGroupNumber);
@@ -837,12 +837,12 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 					sprintf_s(szTemp2, "Member%i", b);
 					if (GetPrivateProfileString(szTemp1, szTemp2, 0, szTemp3, MAX_STRING, INIFileName) != 0)
 					{
-						if (strstr(szTemp3, "Merc") && strstr(szTemp3, ((PCHARINFO)pCharData)->Name))
+						if (strstr(szTemp3, "Merc") && strstr(szTemp3, pLocalPC->Name))
 						{
 							bUseMerc = true;
 							WriteChatf("%s:: \arI am to use a mercenary\ax", PLUGIN_MSG);
 						}
-						else if (strstr(szTemp3, ((PCHARINFO)pCharData)->Name))
+						else if (strstr(szTemp3, pLocalPC->Name))
 						{
 							iGroupNumber = a;
 							bGroupComplete = false;
