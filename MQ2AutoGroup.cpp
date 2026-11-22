@@ -1068,28 +1068,28 @@ bool SetupGroup(PCHARINFO pChar)
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMainTank, "Done");
 					}
-					else if (!_stricmp(szMainAssist, szTemp1))
+					if (!_stricmp(szMainAssist, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 2", szTemp2);
 						WriteChatf("%s:: Setting \ag%s\ax to be main assist", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMainAssist, "Done");
 					}
-					else if (!_stricmp(szPuller, szTemp1))
+					if (!_stricmp(szPuller, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 3", szTemp2);
 						WriteChatf("%s:: Setting \ag%s\ax to be puller", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szPuller, "Done");
 					}
-					else if (!_stricmp(szMarkNPC, szTemp1))
+					if (!_stricmp(szMarkNPC, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 4", szTemp2);
 						WriteChatf("%s:: Setting \ag%s\ax to be mark npc", PLUGIN_MSG, szTemp2);
 						DoCommand(GetCharInfo()->pSpawn, szCommand);
 						sprintf_s(szMarkNPC, "Done");
 					}
-					else if (!_stricmp(szMasterLooter, szTemp1))
+					if (!_stricmp(szMasterLooter, szTemp1))
 					{
 						sprintf_s(szCommand, "/grouproles set %s 5", szTemp2);
 						WriteChatf("%s:: Setting \ag%s\ax to be master looter", PLUGIN_MSG, szTemp2);
